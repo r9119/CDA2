@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+carbonIntensity <- read.csv('./Data sets/carbon-intensity-electricity.csv') %>% filter(Code == 'ESP')
+oilPrice <- read.csv('./Data sets/Europe_Brent_Spot_Price_FOB.csv', skip=4)
+shareOfElecBySource <- read.csv('./Data sets/share-elec-by-source.csv') %>% filter(Code == 'ESP') %>% mutate(Year = as.character(Year))
+spanishElecPrices <- read.csv('./Data sets/Electricity_prices_spain.csv') %>% filter(TAX == "All taxes and levies included", CURRENCY == "Euro")
+energyGeneration <- read.csv('./Data sets/Primary Energy Production.csv')
+
+names(energyGeneration)[names(energyGeneration) == "ï..Year"] <- "Year"
+
+energyGeneration
+```
+```{r}
+ggplot(carbonIntensity) +
+  geom_line(aes(y = Intensity, x = Year), color="#4B1D91CC")
+```
+```{r}
+ggplot(energyGeneration) +
+  geom_line(aes(y = Spain, x = Year, group = 1), color="#4B1D91CC") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  ylab("Energy generation in kWh") + xlab("Year") + ggtitle("Enery production in spain between 1900 and 2016")
+```
+```{r}
+co2EmissionsFromEnergy <- data.frame(energyGeneration %>% filter(Year > 2000))
+
+co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
+
+for (i in 1:nrow(co2EmissionsFromEnergy)) {
+  co2EmissionsFromEnergy[i,] %<>%
+    filter(Year == co2EmissionsFromEnergy[i,]$Year) %>%
+    mutate(Emissions = (Spain * carbonIntensity[i,]$Intensity)/1000000)
+}
+
+co2EmissionsFromEnergy
+```
+```{r}
+ggplot(co2EmissionsFromEnergy) +
+  geom_line(aes(y = Emissions, x = Year, group = 1), color="#4B1D91CC") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  ylab("CO2 Emissions (kt)") + xlab("Years 2000 to 2016") + ggtitle("Co2 Emissions from energy generation in Spain")
+```
+
+
+
+
+
+
