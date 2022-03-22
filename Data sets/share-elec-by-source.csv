@@ -1,4 +1,4 @@
-Entity,Code,Year,Coal (% electricity),Gas (% electricity),Hydro (% electricity),Solar (% electricity),Wind (% electricity),Oil (% electricity),Nuclear (% electricity),Other renewables including bioenergy (% electricity)
+Entity,Code,Year,Coal,Gas,Hydro,Solar,Wind,Oil,Nuclear,Other renewables
 Afghanistan,AFG,2000,0,33.191,66.809,0,0,0,0,0
 Afghanistan,AFG,2001,0,15.878,84.122,0,0,0,0,0
 Afghanistan,AFG,2002,0,19.214,80.786,0,0,0,0,0

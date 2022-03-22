@@ -2,7 +2,7 @@ Europe Brent Spot Price FOB
 https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=pet&s=rbrte&f=m
 15:02:13 GMT+0100 (Central European Standard Time)
 Data Source: Thomson Reuters
-Month,Europe Brent Spot Price FOB Dollars per Barrel
+Month,Brent_Spot_Price
 Feb 2022,97.13
 Jan 2022,86.51
 Dec 2021,74.17
