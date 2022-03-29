@@ -1,35 +1,172 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Einfluss Ölpreis auf Treibhausgasausstoss "
+author: "Rami Tarabishi, Alexander Shanmugam"
+date: "`r format(Sys.time(), '%B %Y')`"
+
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_depth: 3
+    df_print: paged
+    toc_float: true
+    theme: simplex
+    highlight: haddock
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+
 ---
 
-```{r}
-library(tidyverse)
-library(ggplot2)
+&nbsp;   
+&nbsp;
+
+
+# Management Summary {.tabset}
+## Fragestellung
+Es stellt sich die Frage, ob bei steigenden Ölpreisen, die Kraftwerksbetreiber ihr Portfolio von technologisch unterschiedlichen Kraftwerken längerfristig umbauen – hin zu Technologien mit tiefen SRMC.
+
+Ein solcher Effekt müsste in niedrigeren CO2-Werten pro kWh elektrische Energie sichtbar werden (da die fossilen Kraftwerke abgeschaltet würden). 
+
+Da andere Kosten-Parameter auch eine Rolle spielen können, soll aufgezeigt werden, wie stark (falls ein solcher Effekt existiert) ein solcher vermuteter Effekt ist. 
+
+&nbsp;   
+&nbsp;
+
+## Antwort
+
+Noch unklar
+
+&nbsp;   
+&nbsp;
+
+# Datenaufbereitung {.tabset}
+- Daten werden geladen 
+- Wie sehen meine Daten aus? 
+```{r libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)    #opinionated collection of R packages designed for data science
+library(summarytools) #providing tools to neatly and quickly summarize data
+library(lubridate)    #simplifies working with dates
+library(knitr)        #tools to make nice outputs
+library(plotly)       #interactive plots
+```
+## Carbon Intensity
+```{r read-CI}
+carbonIntensity <- as_tibble(read.csv('./Data sets/carbon-intensity-electricity.csv') %>% filter(Code == 'ESP')) #source: https://ourworldindata.org/grapher/carbon-intensity-electricity
+
+glimpse(carbonIntensity)
+#Carbon intensity measures the amount of greenhouse gases emitted per unit of electricity produced. Here it is measured in grams of CO₂ per kilowatt-hour of electricity.
+kable(summary(carbonIntensity)) #Intensity: gCO2 per kWh 2000 - 2020
+
+view(dfSummary(carbonIntensity, plain.ascii = FALSE,style = 'grid'), method = 'render')
 ```
 
-```{r}
-carbonIntensity <- read.csv('./Data sets/carbon-intensity-electricity.csv') %>% filter(Code == 'ESP')
-oilPrice <- read.csv('./Data sets/Europe_Brent_Spot_Price_FOB.csv', skip=4)
-shareOfElecBySource <- read.csv('./Data sets/share-elec-by-source.csv') %>% filter(Code == 'ESP') %>% mutate(Year = as.character(Year))
-spanishElecPrices <- read.csv('./Data sets/Electricity_prices_spain.csv') %>% filter(TAX == "All taxes and levies included", CURRENCY == "Euro")
-energyGeneration <- read.csv('./Data sets/Primary Energy Production.csv')
+### Grafische Übersicht
+```{r plot-CI}
+p <- ggplot(carbonIntensity) +
+  geom_line(aes(y = Intensity, x = Year), color="#4B1D91CC") +
+  ggtitle("Carbon intensity of electricity per kWh per Year")
+ggplotly(p)
+```
 
-names(energyGeneration)[names(energyGeneration) == "ï..Year"] <- "Year"
+## Oil Price
 
-energyGeneration
+```{r read-OP, warning=FALSE}
+oilPrice <- as_tibble(read.csv('./Data sets/DCOILBRENTEU.csv', header = TRUE)) #source: https://fred.stlouisfed.org/series/DCOILBRENTEU
+
+glimpse(oilPrice)
+# Month needs to be converted to a Date Format
+oilPrice <- rename(oilPrice, c('Date' = 'DATE', 'Price' = 'DCOILBRENTEU')) %>%
+  mutate(Date = ymd(Date), Price = as.numeric(Price), Year = year(Date)) %>%
+  arrange(oilPrice, Date)
+
+glimpse(oilPrice)
+
+kable(summary(oilPrice)) #Price: USD per Barrel
+
+view(dfSummary(oilPrice, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
-```{r}
-ggplot(carbonIntensity) +
-  geom_line(aes(y = Intensity, x = Year), color="#4B1D91CC")
+
+### Grafische Übersicht
+
+```{r plot-OP}
+p <- ggplot(oilPrice, aes(Date, Price)) +
+  geom_line() +
+  ggtitle("Brent Oil Price")
+ggplotly(p)
 ```
-```{r}
-ggplot(energyGeneration) +
-  geom_line(aes(y = Spain, x = Year, group = 1), color="#4B1D91CC") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-  ylab("Energy generation in kWh") + xlab("Year") + ggtitle("Enery production in spain between 1900 and 2016")
+
+## Share of electricity by source
+```{r read-SOES}
+shareOfElecBySource <- as_tibble(read.csv('./Data sets/share-elec-by-source.csv'))  %>% filter(Code == 'ESP') #source: https://ourworldindata.org/grapher/share-elec-by-source?country=~ESP
+
+glimpse(shareOfElecBySource)
+
+kable(summary(shareOfElecBySource))
+
+view(dfSummary(shareOfElecBySource, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
-```{r}
+
+### Grafische Übersicht
+```{r plot-SOES}
+shareOfElecBySource_long <- shareOfElecBySource %>% pivot_longer(Coal:Other.renewables, names_to="Source", values_to="Percent")
+
+p <- ggplot(shareOfElecBySource_long, aes(x = Year, y = Percent, color = Source)) +
+  geom_line() +
+  ggtitle("Share of electricity production by source, Spain")
+ggplotly(p)
+```
+
+## Electricity prices
+
+```{r read-EP, warning=FALSE}
+elecPrices <- as_tibble(read.csv('./Data sets/Electricity_prices_spain.csv') %>% filter(TAX == "All taxes and levies included", CURRENCY == "Euro")) #source: https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=nrg_pc_204
+
+glimpse(elecPrices)
+elecPrices <- elecPrices %>% mutate(Value = as.numeric(Value)) %>%
+  select(-CURRENCY, -TAX, -UNIT, -GEO, -PRODUCT, -CONSOM)
+elecPrices <- drop_na(elecPrices)
+
+glimpse(elecPrices)
+
+kable(summary(elecPrices)) #Prices in EUR
+
+view(dfSummary(elecPrices, plain.ascii = FALSE, style = 'grid'), method = 'render')
+```
+
+### Grafische Übersicht
+```{r plot-EP}
+p <- ggplot(elecPrices, aes(TIME, Value, group = 1)) +
+  geom_line() +
+  ggtitle("Electricity price in Spain by Semester")
+
+ggplotly(p)
+```
+
+## Energy Generation
+```{r read-EG}
+energyGeneration <- as_tibble(read.csv('./Data sets/Primary Energy Production.csv')) #source: https://www.theshiftdataportal.org/energy/primary-energy?chart-type=line&chart-types=line&chart-types=ranking&disable-en=false&energy-families=Oil&energy-families=Coal&energy-families=Gas&energy-families=Nuclear&energy-families=Hydroelectricity&energy-families=Wind&energy-families=Peat&energy-families=Biomass%20and%20Waste&energy-families=Fuel%20Ethanol&energy-families=Geothermal&energy-families=Solar%2C%20Tide%2C%20Wave%2C%20Fuel%20Cell&energy-families=Biodiesel&energy-unit=KWh&gdp-unit=GDP%20(constant%202010%20US%24)&group-names=Spain&is-range=true&dimension=total&end=2016&start=1900&multi=true&type=Production
+
+glimpse(energyGeneration)
+
+energyGeneration <- energyGeneration %>% mutate(Year = as.numeric(substr(Year, 1, 4))) %>%
+  rename(c("kwh" = "Spain"))
+
+glimpse(energyGeneration)
+
+kable(summary(energyGeneration)) #Energy Generation in kWh
+
+view(dfSummary(energyGeneration, plain.ascii = FALSE, style = 'grid'), method = 'render')
+```
+### Grafische Übersicht
+```{r plot-EG}
+p <- ggplot(energyGeneration, aes(Year, kwh)) +
+  geom_line() +
+  labs(y = 'Energy Production in kWh', title = 'Spain\'s Electricity production in kWh')
+ggplotly(p)
+```
+## Emissions
+```{r emissions}
 co2EmissionsFromEnergy <- data.frame(energyGeneration %>% filter(Year > 2000))
 
 co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
@@ -37,12 +174,13 @@ co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
 for (i in 1:nrow(co2EmissionsFromEnergy)) {
   co2EmissionsFromEnergy[i,] %<>%
     filter(Year == co2EmissionsFromEnergy[i,]$Year) %>%
-    mutate(Emissions = (Spain * carbonIntensity[i,]$Intensity)/1000000)
+    mutate(Emissions = (kwh * carbonIntensity[i,]$Intensity)/1000000)
 }
 
 co2EmissionsFromEnergy
 ```
-```{r}
+### Grafische Übersicht
+```{r plot-emissions}
 ggplot(co2EmissionsFromEnergy) +
   geom_line(aes(y = Emissions, x = Year, group = 1), color="#4B1D91CC") +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
@@ -50,7 +188,61 @@ ggplot(co2EmissionsFromEnergy) +
 ```
 
 
+# Analyse
+
+- Alle Daten in einem Dataframe sammeln 
+- Reproduzierbares Datensample gruppiert nach Zylinder generieren 
+- Passende Attribute selektieren 
+
+```{r}
+data <- carbonIntensity %>% select(-Entity, -Code)
+glimpse(data)
+tail(data)
+
+oilPriceYearly <- oilPrice %>%
+  group_by(Year) %>%
+  summarise(meanOilPrice = mean(Price, na.rm = TRUE)) %>%
+  filter(Year >= 2000 & Year <= 2020)
+
+glimpse(oilPriceYearly)
+tail(oilPriceYearly)
+
+shareOfElecBySource <- shareOfElecBySource %>% filter(Year >= 2000 & Year <= 2020)
+head(shareOfElecBySource)
+tail(shareOfElecBySource)
+
+elecPricesYearly <- elecPrices %>%
+  mutate(Year = substr(TIME, 1, 4)) %>%
+  filter(Year >= 2000 & Year <= 2020) %>%
+  group_by(Year) %>%
+  summarise(meanElecPrice = mean(Value))
+missingYears <- data.frame(2000:2006, rep(NA, 7))
+colnames(missingYears) <- c('Year', 'meanElecPrice')
+elecPricesYearly <- rbind(missingYears, elecPricesYearly)
+
+energyGeneration <- energyGeneration %>% filter(Year >= 2000 & Year <= 2020)
+dim(energyGeneration)
+missingYears <- data.frame(2017:2020, rep(NA, 4))
+colnames(missingYears) <- c('Year', 'kwh')
+energyGeneration <- rbind(energyGeneration, missingYears)
+dim(energyGeneration)
+
+data <- data %>% add_column(oilPriceYearly[,'meanOilPrice'], shareOfElecBySource[,4:10], elecPricesYearly[,'meanElecPrice'], energyGeneration[,'kwh'])
+glimpse(data)
+
+kable(summary(data))
+
+hist(data$Intensity)
+shapiro.test(data$Intensity) #Test for normality -> p > .05 is ok
+
+
+plot(meanOilPrice ~ Intensity, data = data)
+
+lm <- lm(meanOilPrice ~ Intensity, data = data)
+
+summary(lm)
+```
 
 
 
-
+# Ergebnis / Bewertung
