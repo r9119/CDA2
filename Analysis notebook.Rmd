@@ -12,6 +12,7 @@ output:
     toc_float: true
     theme: simplex
     highlight: haddock
+    self_contained: no
   pdf_document:
     toc: yes
     toc_depth: '2'
@@ -49,24 +50,66 @@ library(summarytools) #providing tools to neatly and quickly summarize data
 library(lubridate)    #simplifies working with dates
 library(knitr)        #tools to make nice outputs
 library(plotly)       #interactive plots
+library(httr)         #for http requests (to get data)
+library(jsonlite)     #to deal with json
 ```
-## Carbon Intensity
-```{r read-CI}
-carbonIntensity <- as_tibble(read.csv('./Data sets/carbon-intensity-electricity.csv') %>% filter(Code == 'ESP')) #source: https://ourworldindata.org/grapher/carbon-intensity-electricity
+```{r get_data}
+# get_data <- function(call) {
+#   getData <- GET(call)
+#   print(status_code(getData))
+#   # Getting status of HTTP Call
+#   if(status_code(getData) == 200)
+#     {
+#       # Converting content to text
+#       getDataText <- content(getData,
+#                                 "text", encoding = "UTF-8")
+#       # Parsing data in JSON
+#       getDataJson <- fromJSON(getDataText,
+#                               flatten = TRUE)
+#       return(getDataJson)
+#     }
+# }
 
-glimpse(carbonIntensity)
-#Carbon intensity measures the amount of greenhouse gases emitted per unit of electricity produced. Here it is measured in grams of CO₂ per kilowatt-hour of electricity.
-kable(summary(carbonIntensity)) #Intensity: gCO2 per kWh 2000 - 2020
+# TODOs:
+# installed potential
+# https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month
+# hourly prices; are these production costs?
+# https://apidatos.ree.es/en/datos/mercados/precios-mercados-tiempo-real?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=hour
 
-view(dfSummary(carbonIntensity, plain.ascii = FALSE,style = 'grid'), method = 'render')
-```
 
-### Grafische Übersicht
-```{r plot-CI}
-p <- ggplot(carbonIntensity) +
-  geom_line(aes(y = Intensity, x = Year), color="#4B1D91CC") +
-  ggtitle("Carbon intensity of electricity per kWh per Year")
-ggplotly(p)
+# generationData <- data.frame()
+# for (i in 2011:2022)
+# {
+#   if (i != 2022) {
+#     call <- paste("https://apidatos.ree.es/en/datos/generacion/estructura-generacion?start_date=", i, "-01-01T00:00&end_date=", i, "-12-31T23:59&time_trunc=day", sep = '')
+#   }
+#   else {
+#     call <- paste("https://apidatos.ree.es/en/datos/generacion/estructura-generacion?start_date=", i, "-01-01T00:00&end_date=", Sys.Date(),"T23:59&time_trunc=day", sep = '')
+#   }
+#   data <- get_data(call)
+#   data <- data$included %>% filter(attributes.title == "Total generation")
+
+#   # Converting into dataframe
+#   generationData <- rbind(generationData, as.data.frame(data$attributes.values))
+# }
+# View(generationData)
+# write.csv(generationData, "./Data sets/GenerationData.csv")
+
+# emissions <- data.frame()
+# for(i in 2011:2022){
+#   if (i != 2022){
+#     call <- paste('https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=', i, '-01-01T00:00&end_date=', i, '-12-31T23:59&time_trunc=day', sep = '')
+#   }
+#   else{
+#     call <- paste('https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=', i, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=day', sep = '')
+#   }
+#   data <- get_data(call)
+#   data <- data$included %>% filter(groupId == 'Emission factor')
+
+#   emissions <- rbind(emissions, as.data.frame(data$attributes.values)) #tCO2 eq./MWh
+#   write.csv(emissions, "./Data sets/Emissions.csv")
+# }
+# View(emissions)
 ```
 
 ## Oil Price
@@ -145,14 +188,15 @@ ggplotly(p)
 
 ## Energy Generation
 ```{r read-EG}
-energyGeneration <- as_tibble(read.csv('./Data sets/Primary Energy Production.csv')) #source: https://www.theshiftdataportal.org/energy/primary-energy?chart-type=line&chart-types=line&chart-types=ranking&disable-en=false&energy-families=Oil&energy-families=Coal&energy-families=Gas&energy-families=Nuclear&energy-families=Hydroelectricity&energy-families=Wind&energy-families=Peat&energy-families=Biomass%20and%20Waste&energy-families=Fuel%20Ethanol&energy-families=Geothermal&energy-families=Solar%2C%20Tide%2C%20Wave%2C%20Fuel%20Cell&energy-families=Biodiesel&energy-unit=KWh&gdp-unit=GDP%20(constant%202010%20US%24)&group-names=Spain&is-range=true&dimension=total&end=2016&start=1900&multi=true&type=Production
+energyGeneration <- as_tibble(read.csv('./Data sets/GenerationData.csv')) #https://www.ree.es/en/apidatos
 
-glimpse(energyGeneration)
+glimpse(energyGeneration) # GWh
+energyGeneration <- energyGeneration %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime)
+glimpse(energyGeneration) # MWh
+# energyGeneration <- energyGeneration %>% mutate(Year = as.numeric(substr(Year, 1, 4))) %>%
+#   rename(c("kwh" = "Spain"))
 
-energyGeneration <- energyGeneration %>% mutate(Year = as.numeric(substr(Year, 1, 4))) %>%
-  rename(c("kwh" = "Spain"))
-
-glimpse(energyGeneration)
+# glimpse(energyGeneration)
 
 kable(summary(energyGeneration)) #Energy Generation in kWh
 
@@ -160,31 +204,35 @@ view(dfSummary(energyGeneration, plain.ascii = FALSE, style = 'grid'), method = 
 ```
 ### Grafische Übersicht
 ```{r plot-EG}
-p <- ggplot(energyGeneration, aes(Year, kwh)) +
+p <- ggplot(energyGeneration, aes(date, value)) +
   geom_line() +
-  labs(y = 'Energy Production in kWh', title = 'Spain\'s Electricity production in kWh')
+  labs(y = 'Energy Production in MWh', title = 'Spain\'s Electricity production in MWh')
 ggplotly(p)
 ```
 ## Emissions
 ```{r emissions}
-co2EmissionsFromEnergy <- data.frame(energyGeneration %>% filter(Year > 2000))
+emissions <- as_tibble(read.csv("./Data sets/Emissions.csv"))
+glimpse(emissions)
+emissions <- emissions %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime, -percentage, -X)
+glimpse(emissions) #tCO2 eq./MWh
+# co2EmissionsFromEnergy <- data.frame(energyGeneration %>% filter(Year > 2000))
 
-co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
+# co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
 
-for (i in 1:nrow(co2EmissionsFromEnergy)) {
-  co2EmissionsFromEnergy[i,] %<>%
-    filter(Year == co2EmissionsFromEnergy[i,]$Year) %>%
-    mutate(Emissions = (kwh * carbonIntensity[i,]$Intensity)/1000000)
-}
+# for (i in 1:nrow(co2EmissionsFromEnergy)) {
+#   co2EmissionsFromEnergy[i,] %<>%
+#     filter(Year == co2EmissionsFromEnergy[i,]$Year) %>%
+#     mutate(Emissions = (kwh * carbonIntensity[i,]$Intensity)/1000000)
+# }
 
-co2EmissionsFromEnergy
+# co2EmissionsFromEnergy
 ```
 ### Grafische Übersicht
 ```{r plot-emissions}
-ggplot(co2EmissionsFromEnergy) +
-  geom_line(aes(y = Emissions, x = Year, group = 1), color="#4B1D91CC") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-  ylab("CO2 Emissions (kt)") + xlab("Years 2000 to 2016") + ggtitle("Co2 Emissions from energy generation in Spain")
+# ggplot(co2EmissionsFromEnergy) +
+#   geom_line(aes(y = Emissions, x = Year, group = 1), color="#4B1D91CC") +
+#   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+#   ylab("CO2 Emissions (kt)") + xlab("Years 2000 to 2016") + ggtitle("Co2 Emissions from energy generation in Spain")
 ```
 
 
@@ -195,50 +243,65 @@ ggplot(co2EmissionsFromEnergy) +
 - Passende Attribute selektieren 
 
 ```{r}
-data <- carbonIntensity %>% select(-Entity, -Code)
+# data <- carbonIntensity %>% select(-Entity, -Code)
+# glimpse(data)
+# tail(data)
+
+# oilPriceYearly <- oilPrice %>%
+#   group_by(Year) %>%
+#   summarise(meanOilPrice = mean(Price, na.rm = TRUE)) %>%
+#   filter(Year >= 2000 & Year <= 2020)
+
+# glimpse(oilPriceYearly)
+# tail(oilPriceYearly)
+
+# shareOfElecBySource <- shareOfElecBySource %>% filter(Year >= 2000 & Year <= 2020)
+# head(shareOfElecBySource)
+# tail(shareOfElecBySource)
+
+# elecPricesYearly <- elecPrices %>%
+#   mutate(Year = substr(TIME, 1, 4)) %>%
+#   filter(Year >= 2000 & Year <= 2020) %>%
+#   group_by(Year) %>%
+#   summarise(meanElecPrice = mean(Value))
+# missingYears <- data.frame(2000:2006, rep(NA, 7))
+# colnames(missingYears) <- c('Year', 'meanElecPrice')
+# elecPricesYearly <- rbind(missingYears, elecPricesYearly)
+
+# energyGeneration <- energyGeneration %>% filter(Year >= 2000 & Year <= 2020)
+# dim(energyGeneration)
+# missingYears <- data.frame(2017:2020, rep(NA, 4))
+# colnames(missingYears) <- c('Year', 'kwh')
+# energyGeneration <- rbind(energyGeneration, missingYears)
+# dim(energyGeneration)
+
+# data <- data %>% add_column(oilPriceYearly[,'meanOilPrice'], shareOfElecBySource[,4:10], elecPricesYearly[,'meanElecPrice'])
+# glimpse(data)
+
+# kable(summary(data))
+data <- oilPrice %>% filter(Year >= 2011) %>% select(-Year)
 glimpse(data)
 tail(data)
-
-oilPriceYearly <- oilPrice %>%
-  group_by(Year) %>%
-  summarise(meanOilPrice = mean(Price, na.rm = TRUE)) %>%
-  filter(Year >= 2000 & Year <= 2020)
-
-glimpse(oilPriceYearly)
-tail(oilPriceYearly)
-
-shareOfElecBySource <- shareOfElecBySource %>% filter(Year >= 2000 & Year <= 2020)
-head(shareOfElecBySource)
-tail(shareOfElecBySource)
-
-elecPricesYearly <- elecPrices %>%
-  mutate(Year = substr(TIME, 1, 4)) %>%
-  filter(Year >= 2000 & Year <= 2020) %>%
-  group_by(Year) %>%
-  summarise(meanElecPrice = mean(Value))
-missingYears <- data.frame(2000:2006, rep(NA, 7))
-colnames(missingYears) <- c('Year', 'meanElecPrice')
-elecPricesYearly <- rbind(missingYears, elecPricesYearly)
-
-energyGeneration <- energyGeneration %>% filter(Year >= 2000 & Year <= 2020)
-dim(energyGeneration)
-missingYears <- data.frame(2017:2020, rep(NA, 4))
-colnames(missingYears) <- c('Year', 'kwh')
-energyGeneration <- rbind(energyGeneration, missingYears)
+energyGeneration <- energyGeneration %>% filter(date %in% data$Date) %>% mutate(GeneratedEnergy = value) %>% select(-percentage, -date, -X, -value) 
+dim(data)
 dim(energyGeneration)
 
-data <- data %>% add_column(oilPriceYearly[,'meanOilPrice'], shareOfElecBySource[,4:10], elecPricesYearly[,'meanElecPrice'], energyGeneration[,'kwh'])
+emissions <- emissions %>% mutate(emissions = value) %>% select(-value) %>% filter(date %in% data$Date)
+dim(emissions)
+
+data <- data %>% cbind(energyGeneration, emissions)
+glimpse(data)
+data <- data %>% mutate(totalEmissions = emissions * GeneratedEnergy/1000)
 glimpse(data)
 
-kable(summary(data))
-
-hist(data$Intensity)
-shapiro.test(data$Intensity) #Test for normality -> p > .05 is ok
+hist(data$Price)
+shapiro.test(data$Price) #Test for normality -> p > .05 is ok
 
 
-plot(meanOilPrice ~ Intensity, data = data)
+plot(emissions ~ Price, data = data)
+abline(lm(emissions ~ Price, data = data))
 
-lm <- lm(meanOilPrice ~ Intensity, data = data)
+lm <- lm(emissions ~ Price, data = data)
 
 summary(lm)
 ```

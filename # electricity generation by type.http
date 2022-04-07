@@ -1,0 +1,9 @@
+# electricity generation by type
+# https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month
+
+# CO2 and GHG Emissions
+# https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=day
+
+# price?
+https://apidatos.ree.es/en/datos/mercados/precios-mercados-tiempo-real?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=hour
+
