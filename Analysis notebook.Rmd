@@ -45,8 +45,13 @@ Noch unklar
 - Daten werden geladen 
 - Wie sehen meine Daten aus? 
 ```{r libraries, message=FALSE, warning=FALSE, paged.print=FALSE}
+# ---- TODOs: ----
+# hourly prices; are these production costs?
+# https://apidatos.ree.es/en/datos/mercados/precios-mercados-tiempo-real?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=hour
+#
+# eda for installed potential (read csv, explore data, pack into useful format)
+
 library(tidyverse)    #opinionated collection of R packages designed for data science
-# library(summarytools) #providing tools to neatly and quickly summarize data
 library(lubridate)    #simplifies working with dates
 library(knitr)        #tools to make nice outputs
 library(plotly)       #interactive plots
@@ -54,29 +59,24 @@ library(httr)         #for http requests (to get data)
 library(jsonlite)     #to deal with json
 ```
 ```{r get_data}
-get_data <- function(call) {
-  getData <- GET(call)
-  print(status_code(getData))
-  # Getting status of HTTP Call
-  if(status_code(getData) == 200)
-    {
-      # Converting content to text
-      getDataText <- content(getData,
-                                "text", encoding = "UTF-8")
-      # Parsing data in JSON
-      getDataJson <- fromJSON(getDataText,
-                              flatten = TRUE)
-      return(getDataJson)
-    }
-}
+# ---- Function to retreive data from API ----
+# get_data <- function(call) {
+#   getData <- GET(call)
+#   print(status_code(getData))
+#   # Getting status of HTTP Call
+#   if(status_code(getData) == 200)
+#     {
+#       # Converting content to text
+#       getDataText <- content(getData,
+#                                 "text", encoding = "UTF-8")
+#       # Parsing data in JSON
+#       getDataJson <- fromJSON(getDataText,
+#                               flatten = TRUE)
+#       return(getDataJson)
+#     }
+# }
 
-# TODOs:
-# installed potential
-# https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month
-# hourly prices; are these production costs?
-# https://apidatos.ree.es/en/datos/mercados/precios-mercados-tiempo-real?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=hour
-
-
+# ---- generation Data retrieval ----
 # generationData <- data.frame()
 # for (i in 2011:2022)
 # {
@@ -95,6 +95,7 @@ get_data <- function(call) {
 # View(generationData)
 # write.csv(generationData, "./Data sets/GenerationData.csv")
 
+# ---- emissions Data retreival ----
 # emissions <- data.frame()
 # for(i in 2011:2022){
 #   if (i != 2022){
@@ -111,23 +112,29 @@ get_data <- function(call) {
 # }
 # View(emissions)
 
-generationPotential <- data.frame()
-for (i in 2011:2022) {
-  if (i != 2022) {
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', i, '-12-31T23:59&time_trunc=month', sep = '')
-  }
-  else{
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=month', sep = '')
-  }
-  data <- get_data(call)
-}
+# ---- generation potential Data retreival ----
+# generationPotential <- data.frame()
+# for (i in 2015:2022) { # only available since 2015
+#   if (i != 2022) {
+#     call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', i, '-12-31T23:59&time_trunc=month', sep = '')
+#   }
+#   else{
+#     call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=month', sep = '')
+#   }
 
-call <- "https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month"
-data <- get_data(call)
-included <- data$included
-View(included)
-d <- filter(included, type == 'Hydro')
-d$attributes.values
+#   data <- get_data(call)$included
+#   if (i == 2015){
+#     generationPotential <- data
+#   } else {
+#     for (t in data$type){
+#       generationPotential[generationPotential$type == t,]$attributes.values[[1]] <- rbind(generationPotential[generationPotential$type == t,]$attributes.values[[1]], data[data$type == t,]$attributes.values[[1]])
+#     }
+#   }
+# }
+
+# for (t in generationPotential$type){
+#   write.csv(generationPotential[generationPotential$type == t,]$attributes.values[[1]], paste('./Data sets/', t, '-potential.csv', sep = ''))
+# }
 ```
 
 ## Oil Price
@@ -144,8 +151,6 @@ oilPrice <- rename(oilPrice, c('Date' = 'DATE', 'Price' = 'DCOILBRENTEU')) %>%
 glimpse(oilPrice)
 
 kable(summary(oilPrice)) #Price: USD per Barrel
-
-# view(dfSummary(oilPrice, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
 
 ### Grafische Übersicht
@@ -164,8 +169,6 @@ shareOfElecBySource <- as_tibble(read.csv('./Data sets/share-elec-by-source.csv'
 glimpse(shareOfElecBySource)
 
 kable(summary(shareOfElecBySource))
-
-# view(dfSummary(shareOfElecBySource, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
 
 ### Grafische Übersicht
@@ -191,8 +194,6 @@ elecPrices <- drop_na(elecPrices)
 glimpse(elecPrices)
 
 kable(summary(elecPrices)) #Prices in EUR
-
-# view(dfSummary(elecPrices, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
 
 ### Grafische Übersicht
@@ -211,14 +212,8 @@ energyGeneration <- as_tibble(read.csv('./Data sets/GenerationData.csv')) #https
 glimpse(energyGeneration) # GWh
 energyGeneration <- energyGeneration %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime)
 glimpse(energyGeneration) # MWh
-# energyGeneration <- energyGeneration %>% mutate(Year = as.numeric(substr(Year, 1, 4))) %>%
-#   rename(c("kwh" = "Spain"))
-
-# glimpse(energyGeneration)
 
 kable(summary(energyGeneration)) #Energy Generation in kWh
-
-# view(dfSummary(energyGeneration, plain.ascii = FALSE, style = 'grid'), method = 'render')
 ```
 ### Grafische Übersicht
 ```{r plot-EG}
@@ -233,18 +228,6 @@ emissions <- as_tibble(read.csv("./Data sets/Emissions.csv"))
 glimpse(emissions)
 emissions <- emissions %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime, -percentage, -X)
 glimpse(emissions) #tCO2 eq./MWh
-
-# co2EmissionsFromEnergy <- data.frame(energyGeneration %>% filter(Year > 2000))
-
-# co2EmissionsFromEnergy <- co2EmissionsFromEnergy %>% mutate(Emissions = 0)
-
-# for (i in 1:nrow(co2EmissionsFromEnergy)) {
-#   co2EmissionsFromEnergy[i,] %<>%
-#     filter(Year == co2EmissionsFromEnergy[i,]$Year) %>%
-#     mutate(Emissions = (kwh * carbonIntensity[i,]$Intensity)/1000000)
-# }
-
-# co2EmissionsFromEnergy
 ```
 ### Grafische Übersicht
 ```{r plot-emissions}
@@ -252,10 +235,6 @@ p <- ggplot(emissions, aes(date, value)) +
   geom_line() +
   labs(y = 'Emissions in ?', title = 'Spain\'s energy production emissions')
 ggplotly(p)
-# ggplot(co2EmissionsFromEnergy) +
-#   geom_line(aes(y = Emissions, x = Year, group = 1), color="#4B1D91CC") +
-#   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-#   ylab("CO2 Emissions (kt)") + xlab("Years 2000 to 2016") + ggtitle("Co2 Emissions from energy generation in Spain")
 ```
 
 
@@ -266,42 +245,7 @@ ggplotly(p)
 - Passende Attribute selektieren 
 
 ```{r}
-# data <- carbonIntensity %>% select(-Entity, -Code)
-# glimpse(data)
-# tail(data)
-
-# oilPriceYearly <- oilPrice %>%
-#   group_by(Year) %>%
-#   summarise(meanOilPrice = mean(Price, na.rm = TRUE)) %>%
-#   filter(Year >= 2000 & Year <= 2020)
-
-# glimpse(oilPriceYearly)
-# tail(oilPriceYearly)
-
-# shareOfElecBySource <- shareOfElecBySource %>% filter(Year >= 2000 & Year <= 2020)
-# head(shareOfElecBySource)
-# tail(shareOfElecBySource)
-
-# elecPricesYearly <- elecPrices %>%
-#   mutate(Year = substr(TIME, 1, 4)) %>%
-#   filter(Year >= 2000 & Year <= 2020) %>%
-#   group_by(Year) %>%
-#   summarise(meanElecPrice = mean(Value))
-# missingYears <- data.frame(2000:2006, rep(NA, 7))
-# colnames(missingYears) <- c('Year', 'meanElecPrice')
-# elecPricesYearly <- rbind(missingYears, elecPricesYearly)
-
-# energyGeneration <- energyGeneration %>% filter(Year >= 2000 & Year <= 2020)
-# dim(energyGeneration)
-# missingYears <- data.frame(2017:2020, rep(NA, 4))
-# colnames(missingYears) <- c('Year', 'kwh')
-# energyGeneration <- rbind(energyGeneration, missingYears)
-# dim(energyGeneration)
-
-# data <- data %>% add_column(oilPriceYearly[,'meanOilPrice'], shareOfElecBySource[,4:10], elecPricesYearly[,'meanElecPrice'])
-# glimpse(data)
-
-# kable(summary(data))
+# ---- data prep ----
 data <- oilPrice %>% filter(Year >= 2011) %>% select(-Year)
 glimpse(data)
 tail(data)
@@ -318,6 +262,7 @@ glimpse(data)
 data <- data %>% mutate(totalEmissions = emissions * GeneratedEnergy/1000)
 glimpse(data)
 
+# ---- analysis ----
 hist(data$Price)
 hist(data$emissions)
 shapiro.test(data$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
@@ -325,7 +270,7 @@ shapiro.test(data$emissions)
 
 p <- ggplot(data, aes(Price, emissions, color = year(date))) +
   geom_point() +
-  geom_smooth(method='lm')
+  geom_smooth(method = 'lm')
 ggplotly(p)
 
 lm <- lm(emissions ~ Price, data = data)
@@ -333,7 +278,6 @@ lm <- lm(emissions ~ Price, data = data)
 summary(lm)
 
 # just the year 2019
-
 data2019 <- filter(data, year(date) == 2019)
 
 hist(data2019$Price)
@@ -343,20 +287,13 @@ shapiro.test(data2019$emissions)
 
 p2 <- ggplot(data2019, aes(Price, emissions, color = date)) +
   geom_point() +
-  geom_smooth(method='lm')
+  geom_smooth(method = 'lm')
 ggplotly(p2)
 
 glimpse(data2019)
 lm <- lm(emissions ~ Price, data = data2019)
 
 summary(lm)
-
-#plot(emissions ~ Price, data = data)
-#abline(lm(emissions ~ Price, data = data))
-
-
 ```
-
-
 
 # Ergebnis / Bewertung
