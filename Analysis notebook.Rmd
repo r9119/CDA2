@@ -270,7 +270,8 @@ shapiro.test(data$emissions)
 
 p <- ggplot(data, aes(Price, emissions, color = year(date))) +
   geom_point() +
-  geom_smooth(method = 'lm')
+  geom_smooth(method = 'lm') +
+  labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Years 2010+')
 ggplotly(p)
 
 lm <- lm(emissions ~ Price, data = data)
@@ -287,11 +288,31 @@ shapiro.test(data2019$emissions)
 
 p2 <- ggplot(data2019, aes(Price, emissions, color = date)) +
   geom_point() +
-  geom_smooth(method = 'lm')
+  geom_smooth(method = 'lm') +
+  labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Year 2019')
 ggplotly(p2)
 
 glimpse(data2019)
 lm <- lm(emissions ~ Price, data = data2019)
+
+summary(lm)
+
+# Data past the year 2014
+dataPast2014 <- filter(data, year(date) > 2014)
+
+hist(dataPast2014$Price)
+hist(dataPast2014$emissions)
+shapiro.test(dataPast2014$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
+shapiro.test(dataPast2014$emissions)
+
+p2 <- ggplot(dataPast2014, aes(Price, emissions, color = date)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Years 2015+')
+ggplotly(p2)
+
+glimpse(dataPast2014)
+lm <- lm(emissions ~ Price, data = dataPast2014)
 
 summary(lm)
 ```
