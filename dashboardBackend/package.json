@@ -1,0 +1,33 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "authenticator": "^1.1.5",
+    "bcrypt": "^5.0.1",
+    "bluebird": "^3.7.2",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "eslint": "^7.32.0",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1",
+    "joi": "^17.4.2",
+    "jsonwebtoken": "^8.5.1",
+    "morgan": "^1.10.0",
+    "mysql2": "^2.2.5",
+    "node": "^15.14.0",
+    "nodemailer": "^6.6.3",
+    "nodemon": "^2.0.12",
+    "sequelize": "^6.6.5",
+    "sequelize-cli": "^6.2.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "nodemon src/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
