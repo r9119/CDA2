@@ -1,39 +1,69 @@
 <template>
     <div id="landing-page-main">
         <div id="nav-bar">
-            <Menubar>
-                <template #end>
-                    <InputText placeholder="Search" type="text" />
-                </template>
-            </Menubar>
+            <Navbar />
         </div>
 
-        <div id="map-main">
-            <div id="map-plot" ref="map">
 
+        <div id="map-box" class="grid" style="margin-bottom: 10px;">
+            <div class="col-11 mx-auto">
+                <Card>
+                    <template #title>
+                        Welcome
+                    </template>
+                    <template #content>
+                        <div class="grid">
+                            <div class="col-12 mx-auto">
+                                <l-map style="height: 80vh"
+                                    :zoom="4"
+                                    :center="[55.161603, 5.911815]"
+                                    :minZoom="3"
+                                    :maxZoom="5">
+                                    <l-geo-json ref="map" :geojson="geojson" :options="geojsonOptions" @click="routeToCountry()" />
+                                    <l-tile-layer url="https://api.mapbox.com/styles/v1/r9119/cl38x3mzx000c14ouyqlzk91f/tiles/{z}/{x}/{y}?access_token=sk.eyJ1IjoicjkxMTkiLCJhIjoiY2wzOHdmeWVrMDQ1MTNlbnh2bWlodG8xdiJ9.NJJp41iVxiedQPzG9w7P-Q
+"/>
+                                </l-map>
+                            </div>
+                        </div>
+                    </template>
+                </Card>
             </div>
         </div>
     </div>
 </template>
 
 <script>
-import  Plotly  from 'plotly.js-dist/plotly';
+import Navbar from '../components/NavBar.vue'
+import geoData from '../../public/EU_geoJSON.json'
+import "leaflet/dist/leaflet.css"
+import { LMap, LGeoJson, LTileLayer } from "@vue-leaflet/vue-leaflet";
 
 export default {
+    components: {
+        Navbar,
+        LMap,
+        LGeoJson,
+        LTileLayer
+    },
     data() {
         return {
-            data: [{
-                type: 'choropleth',
-                z: [11,9,8,7,6,5,4,3,2,1],
-                text: ['germany', 'netherlands', 'poland', 'sweden', 'finland', 'portugal', 'austria', 'greece', 'iceland', 'turkey', 'Spain'],
-                locations: ['GER', 'NLD', 'POL', 'SWE', 'FIN', 'PRT', 'AUT', 'GRC', 'ISL', 'TUR', 'ESP'],
-                autocoloscale: true
-            }],
-            layout: {title: 'Emissions (Million tons of CO2'}
+            geojson: geoData,
+            geojsonOptions: {
+                // title: 'Emissions (Million tons of CO2'
+            }
         }
     },
-    mounted() {
-        Plotly.newPlot(this.$refs.map, this.data, this.layout)
+    async beforeMount() {
+        const { circleMarker } = await import("leaflet/dist/leaflet-src.esm");
+
+        this.geojsonOptions.pointToLayer = (feature, latLng) =>
+        circleMarker(latLng, { radius: 8 });
+        this.mapIsReady = true;
+    },
+    methods: {
+        routeToCountry(data) {
+            console.log(data)
+        }
     }
 }
 </script>
