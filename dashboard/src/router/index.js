@@ -11,7 +11,7 @@ const router = createRouter({
       component: landingPage
     },
     {
-      path: '/country',
+      path: '/details',
       name: 'countryPage',
       component: countryPage,
       props: true

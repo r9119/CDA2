@@ -14,7 +14,7 @@
                         <div class="grid">
                             <div class="col-12 mx-auto" style="max-height: 80vh">
                                 <Line 
-                                    :chart-options="chartOptions"
+                                    :chart-options="oilOptions"
                                     :chart-data="oilPrice"
                                     chart-id="oil-price-chart"
                                     :width="400"
@@ -34,8 +34,9 @@ import Navbar from '../components/NavBar.vue'
 import oilPrice from '../../../Data sets/DCOILBRENTEU.json'
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale } from 'chart.js'
+import chartZoom from 'chartjs-plugin-zoom'
 
-ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale)
+ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom)
 
 export default {
     components: {
@@ -44,8 +45,28 @@ export default {
     },
     data() {
         return {
-            chartOptions: {
-                responsive: true
+            oilOptions: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "The brent oil price at a glance"
+                    },
+                    zoom: {
+                        limits: {
+                            y: {min: -10, max: 175}
+                        },
+                        pan: {
+                            enabled: true
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                                speed: 0.3
+                            }
+                        }
+                    }
+                }
             },
             oilPrice: null,
             shareOfElec: null,

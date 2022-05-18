@@ -19,7 +19,7 @@
                                     :center="[55.161603, 5.911815]"
                                     :minZoom="3"
                                     :maxZoom="5">
-                                    <l-geo-json ref="map" :geojson="geojson" :options="geojsonOptions" @click="routeToCountry()" />
+                                    <l-geo-json ref="map" :geojson="geojson" :options="geojsonOptions" />
                                     <l-tile-layer url="https://api.mapbox.com/styles/v1/r9119/cl38x3mzx000c14ouyqlzk91f/tiles/{z}/{x}/{y}?access_token=sk.eyJ1IjoicjkxMTkiLCJhIjoiY2wzOHdmeWVrMDQ1MTNlbnh2bWlodG8xdiJ9.NJJp41iVxiedQPzG9w7P-Q
 "/>
                                 </l-map>
@@ -49,6 +49,7 @@ export default {
         return {
             geojson: geoData,
             geojsonOptions: {
+                onEachFeature: this.routeToCountry
                 // title: 'Emissions (Million tons of CO2'
             }
         }
@@ -61,8 +62,34 @@ export default {
         this.mapIsReady = true;
     },
     methods: {
-        routeToCountry(data) {
-            console.log(data)
+        routeToCountry(feature, layer) {
+            layer.on({
+                click: (event) => {
+                    if (event.target && event.target.feature) {
+                        this.$router.push({
+                            path: '/details',
+                            query: {
+                                country: event.target.feature.properties.name
+                            }
+                        })
+                    }
+                },
+                mouseover: (event) => {
+                    if (event.target && event.target.feature) {
+                        layer.setStyle({
+                            weight: 2,
+                            color: '#3e1046',
+                            dashArray: '',
+                            fillOpacity: 0.5
+                        })
+                    }
+                },
+                mouseout: (event) => {
+                    if (event.target && event.target.feature) {
+                        this.$refs.map.leafletObject.resetStyle()
+                    }
+                }
+            })
         }
     }
 }
