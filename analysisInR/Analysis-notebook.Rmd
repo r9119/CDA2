@@ -62,12 +62,14 @@ library(httr)         #for http requests (to get data)
 library(jsonlite)     #to deal with json
 library(mongolite)    #to connect to mongodb
 library(cbsodataR)    #Netherland Data
+
+library(SPARQL)
 ```
 ## Spain
 ```{r get_data}
 # --- Function to retreive data from API ---
-get_data <- function(call) {
-  getData <- GET(call)
+call_api <- function(url) {
+  getData <- GET(url)
   print(status_code(getData))
   # Getting status of HTTP Call
   if(status_code(getData) == 200)
@@ -83,83 +85,230 @@ get_data <- function(call) {
 }
 
 # --- Function to write retrieved data to files ---
-write_spain_generation_data_to_files <- function(path, data, dataType) {
-  # dataPerYear <- data.frame()
+write_spain_data_to_db <- function(data, dataType) {
   for (t in data$type) {
     type <- gsub('[^[:alnum:] ]', '', t)
-    # valueText <- paste(type, dataType, sep = '')
-    # percentageText <- paste(type, 'Percentage', sep = '')
-    dataPerType <- data[data$type == t, ]$attributes.values[[1]]
-    filename <- paste(path, dataType, '/', type, '-', dataType, '.csv', sep = '')
-    
-    if (file.exists(filename)) {
-      write.table(dataPerType, file = filename, sep =',', append = TRUE, col.names = FALSE, row.names = FALSE, quote = FALSE)
-    } else {
-      write.table(dataPerType, file = filename, sep = ',', row.names = FALSE)
+    dataCollection <- mongo(collection = paste(dataType, type, sep = '-'), db = "Spain")
+    dataCollection$insert(data[data$type == t, ]$attributes.values[[1]])
+  }
+}
+
+# --- get Data from spanish API ---
+get_data_spain <- function(years, url, trunc, dataType) {
+  for (year in years) {
+    if (year != years[length(years)]) {
+      call <- paste(url, '?start_date=', year, '-01-01T00:00&end_date=', year, '-12-31T23:59&time_trunc=', trunc, sep = '')
     }
-
-    # colnames(dataPerType) <- c(valueText, percentageText, 'datetime')
-    # if (t == data$type[1]) {
-    #   dataPerYear <- dataPerType
-    # } else {
-    #   dataPerYear <- merge(dataPerYear, dataPerType, by = intersect(names(dataPerYear), names(dataPerType)), all = TRUE)
-    # }
+    else {
+      call <- paste(url, '?start_date=', year, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=', trunc, sep = '')
+    }
+    data <- call_api(call)$included
+    write_spain_data_to_db(data, dataType)
   }
-  # filename <- paste(path, dataType, '/all.csv', sep = '')
-  # if (file.exists(filename)) {
-  #   write.table(dataPerYear, file = filename, sep = ',', row.names = FALSE, append = TRUE, col.names = FALSE, quote = FALSE)
-  # } else {
-  #   write.table(dataPerYear, file = filename, sep = ',', row.names = FALSE)
-  # }
 }
 
-# ---- generation Data retrieval ----
-for (i in 2011:2022) {
-  if (i != 2022) {
-    call <- paste("https://apidatos.ree.es/en/datos/generacion/estructura-generacion?start_date=", i, "-01-01T00:00&end_date=", i, "-12-31T23:59&time_trunc=day", sep = '')
-  }
-  else {
-    call <- paste("https://apidatos.ree.es/en/datos/generacion/estructura-generacion?start_date=", i, "-01-01T00:00&end_date=", Sys.Date(),"T23:59&time_trunc=day", sep = '')
-  }
-  data <- get_data(call)$included
-  write_spain_generation_data_to_files('./dataSets/Spain/', data, 'energyGeneration')
+# --- get Data from dutch API ---
+get_data_nl <- function() {
+
 }
 
-# ---- emissions Data retreival ----
-for (i in 2011:2022) {
-  if (i != 2022) {
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=', i, '-01-01T00:00&end_date=', i, '-12-31T23:59&time_trunc=day', sep = '')
+# --- get Data from polish API ---
+get_data_pl <- function(labelUrl, url, dataType) {
+  labels <- call_api(labelUrl)$results
+  apiData <- call_api(url)$results
+  labels <- arrange(labels, id)
+  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n1, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
+  for (id in apiData$id) {
+    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
+    collection <- mongo(collection = paste(dataType, apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
+    collection$insert(dataPerLabel)
   }
-  else{
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=', i, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=day', sep = '')
-  }
-  data <- get_data(call)$included
-  write_spain_generation_data_to_files('./dataSets/Spain/', data, 'emissions')
 }
+# --- get all data from every country and fill into mongodb ---
+fill_db <- function() {
+# --- Oil Price ---
+# provided by eia.gov
 
-# ---- generation potential Data retreival ----
-for (i in 2015:2022) { # only available since 2015
-  if (i != 2022) {
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', i, '-12-31T23:59&time_trunc=month', sep = '')
-  }
-  else{
-    call <- paste('https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=', i, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=month', sep = '')
-  }
+oilPriceData <- call_api('https://api.eia.gov/v2/petroleum/pri/spt/data?api_key=a6BwytwjsQLCDb3KXMwJZE11WPoT64BnazpYaYEE&frequency=daily&facets[product][]=EPCBRENT&data[]=value')$response$data
+oilPriceData <- oilPriceData %>% select(
+  -duoarea,
+  -'area-name',
+  -product,
+  -'product-name',
+  -process,
+  -'process-name',
+  -series,
+  -'series-description',
+  -units)
+oilPriceCollection <- mongo(collection = 'BrentOilPrice', db = 'General')
+oilPriceCollection$insert(oilPriceData)
 
-  data <- get_data(call)$included
-  write_spain_generation_data_to_files('./dataSets/Spain/', data, 'generationPotential')
-}
-```
+# --- Share of Electricity By Source ---
+# provided by Our World in Data though without API access
 
-## Netherlands
-```{r}
-energyDataNL <- cbs_get_data("84575ENG") # Energy Production: https://www.cbs.nl/en-gb/figures/detail/84575ENG?q=electricity
-egergyMetaDataNL <- cbs_get_meta("84575ENG")
 
+# Spain
+# provided by ree.es api
+
+## --- generation ---
+get_data_spain(2011:2022, 'https://apidatos.ree.es/en/datos/generacion/estructura-generacion', 'day', 'energyGeneration')
+
+## --- emissions ---
+get_data_spain(2011:2022, 'https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2', 'day', 'emissions')
+
+## --- generation potential ---
+get_data_spain(2015:2022, 'https://apidatos.ree.es/en/datos/generacion/potencia-instalada', 'month', 'generationPotential')
+
+## --- electricity Prices ---
+get_data_spain(2014:2022, 'https://apidatos.ree.es/en/datos/mercados/componentes-precio', 'month', 'electricityPrice')
+
+# Netherlands
+# provided by R package cbsodataR
+
+# 37823eng may also be interesting -> electricity ; production and means of production (input and output figures)
+
+## --- generation ---
+generationDataNL <- cbs_get_data("84575ENG") # Energy Production: https://www.cbs.nl/en-gb/figures/detail/84575ENG?q=electricity
+generationDataNL <- cbs_add_label_columns(generationDataNL) %>% select(-Periods)
+energyCollectionNL <- mongo(collection = 'energyGeneration', db = 'Netherlands')
+energyCollectionNL$insert(energyDataNL)
+
+## --- emissions ---
 emissionDataNL <- cbs_get_data("37221eng") # Emission Data: https://www.cbs.nl/en-gb/figures/detail/37221eng?q=electricity%20emission Source 346700 = Energy supply
-View(emissionDataNL)
+emissionDataNL <- emissionDataNL %>% filter(Sources == '346700   ') # Filter for emissions by energy production
+emissionDataNL <- cbs_add_label_columns(emissionDataNL) %>% select(-Periods, -Sources, -Sources_label)
+emissionsCollectionNL <- mongo(collection = 'emissions', db = 'Netherlands')
+emissionsCollectionNL$insert(emissionDataNL)
+
+## --- generation potential ---
+generationPotentialNL <- cbs_get_data('82610ENG')
+generationPotentialNL <- cbs_add_label_columns(generationPotentialNL) %>% select(-EnergySourcesTechniques, -Periods)
+potentialCollectonNL <- mongo(collection = 'generationPotential', db = 'Netherlands')
+potentialCollectonNL$insert(generationPotentialNL)
+
+## --- electricity Prices (average energy prices for consumers) ---
+electricityPricesNL <- cbs_get_data("84672ENG") # https://www.cbs.nl/en-gb/figures/detail/84672ENG?q=%22average%20energy%20prices%22
+electricityPricesNL <- cbs_add_label_columns(electricityPricesNL) %>% select(-VAT, -Period)
+pricesCollectionNL <- mongo(collection = 'electricityPrices', db = 'Netherlands')
+pricesCollectionNL$insert(electricityPricesNL)
+
+# Poland
+# provided by state api
+
+## --- generation ---
+labelUrl <- 'https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1674&lang=en'
+url <- 'https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999&year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008&year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017&year=2018&year=2019&year=2020&year=2021&year=2022&var-id=7883&var-id=76361&var-id=7884&var-id=79238&var-id=7885&var-id=7936&var-id=194886&var-id=288086&var-id=454054'
+
+#get_data_pl(labelUrl, url, 'energyGeneration')
+  labels <- call_api(labelUrl)$results
+  apiData <- call_api(url)$results
+  labels <- arrange(labels, id)
+  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n1, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
+  for (id in apiData$id) {
+    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
+    collection <- mongo(collection = paste('energyGeneration', apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
+    collection$insert(dataPerLabel)
+  }
+
+## --- emissions ---
+
+
+## --- generation potential ---
+labelUrl <- 'https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1672&lang=en'
+url <- 'https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999&year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008&year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017&year=2018&year=2019&year=2020&year=2021&year=2022&var-id=4834&var-id=79240&var-id=79242&var-id=4835&var-id=4836&var-id=4837&var-id=4838&var-id=4839&var-id=4840&var-id=76364'
+
+#get_data_pl(labelUrl, url, 'generationPotential')
+  labels <- call_api(labelUrl)$results
+  apiData <- call_api(url)$results
+  labels <- arrange(labels, id)
+  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n2, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
+  for (id in apiData$id) {
+    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
+    collection <- mongo(collection = paste('generationPotential', apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
+    collection$insert(dataPerLabel)
+  }
+
+## --- electricity prices ---
+
+
+# Sweden
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Finnland
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Portugal
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Austria
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Greece
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Iceland
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+
+
+# Turkey
+
+## --- generation ---
+
+## --- emissions ---
+
+## --- generation potential ---
+
+## --- electricity prices ---
+}
+
 ```
-##
 
 ## Oil Price
 

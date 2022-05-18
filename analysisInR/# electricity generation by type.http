@@ -1,3 +1,5 @@
+# Playground to find relevant API endpoints
+
 # Spain
 # electricity generation by type
 # https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month
@@ -6,14 +8,21 @@
 # https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=day
 
 # price?
-# https://apidatos.ree.es/en/datos/mercados/precios-mercados-tiempo-real?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=hour
+# https://apidatos.ree.es/en/datos/mercados/componentes-precio?start_date=2018-01-01T00:00&end_date=2018-01-31T23:59&time_trunc=month
 
 # Installed Potential
 # https://apidatos.ree.es/en/datos/generacion/potencia-instalada?start_date=2018-01-01T00:00&end_date=2018-12-31T23:59&time_trunc=month 
+
+
 
 # Poland
 # get ids
 # https://bdl.stat.gov.pl/api/v1/subjects?lang=en&format=json&parent-id=K13 
 # get all variables for production
-# https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1674&lang=en
-https://bdl.stat.gov.pl/api/v1/data/by-variable/7883?format=json&lang=en&year=2010
+# https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1672&lang=en
+
+#https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999&year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008&year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017&year=2018&year=2019&year=2020&year=2021&year=2022&var-id=4834&var-id=79240&var-id=79242&var-id=4835&var-id=4836&var-id=4837&var-id=4838&var-id=4839&var-id=4840&var-id=76364
+
+# https://ec.europa.eu/eurostat/wdds/rest/data/v2.1/json/en/nrg_cb_pem
+#eia
+#https://api.eia.gov/v2/international?api_key=a6BwytwjsQLCDb3KXMwJZE11WPoT64BnazpYaYEE
