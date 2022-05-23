@@ -16,6 +16,7 @@ import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import SplitButton from 'primevue/splitbutton'
 import SpeedDial from 'primevue/speeddial'
+import Divider from 'primevue/divider'
 import Card from 'primevue/card'
 
 const app = createApp(App)
@@ -31,5 +32,6 @@ app.component('Dropdown', Dropdown)
 app.component('SplitButton', SplitButton)
 app.component('SpeedDial', SpeedDial)
 app.component('Card', Card)
+app.component('Divider', Divider)
 
 app.mount('#app')

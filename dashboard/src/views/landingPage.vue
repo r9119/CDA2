@@ -9,19 +9,23 @@
             <div class="col-11 mx-auto">
                 <Card>
                     <template #title>
-                        Welcome
+                        Der Ölpreis und seine Effects auf unser Stromerzeugungsverhalten und Emissionen
                     </template>
                     <template #content>
                         <div class="grid">
                             <div class="col-12 mx-auto">
                                 <l-map style="height: 80vh"
                                     :zoom="4"
-                                    :center="[55.161603, 5.911815]"
+                                    :center="[56.410136, 11.342403]"
                                     :minZoom="3"
                                     :maxZoom="5">
-                                    <l-geo-json ref="map" :geojson="geojson" :options="geojsonOptions" />
                                     <l-tile-layer url="https://api.mapbox.com/styles/v1/r9119/cl38x3mzx000c14ouyqlzk91f/tiles/{z}/{x}/{y}?access_token=sk.eyJ1IjoicjkxMTkiLCJhIjoiY2wzOHdmeWVrMDQ1MTNlbnh2bWlodG8xdiJ9.NJJp41iVxiedQPzG9w7P-Q
 "/>
+                                    <l-geo-json ref="map" :geojson="geojson" :options="geojsonOptions">
+                                        <!-- <l-tooltip ref="tooltip" id="tool-tip" v-show="showTooltip" style="position: absolute, left: -100px, top: 10px">
+                                            <b>{{ currentHover.properties.name }}</b>
+                                        </l-tooltip> -->
+                                    </l-geo-json>
                                 </l-map>
                             </div>
                         </div>
@@ -36,14 +40,15 @@
 import Navbar from '../components/NavBar.vue'
 import geoData from '../../public/EU_geoJSON.json'
 import "leaflet/dist/leaflet.css"
-import { LMap, LGeoJson, LTileLayer } from "@vue-leaflet/vue-leaflet";
+import { LMap, LGeoJson, LTileLayer, LTooltip } from "@vue-leaflet/vue-leaflet";
 
 export default {
     components: {
         Navbar,
         LMap,
         LGeoJson,
-        LTileLayer
+        LTileLayer,
+        LTooltip
     },
     data() {
         return {
@@ -51,7 +56,13 @@ export default {
             geojsonOptions: {
                 onEachFeature: this.routeToCountry
                 // title: 'Emissions (Million tons of CO2'
-            }
+            },
+            currentHover: {
+                properties: {
+                    name: null
+                }
+            },
+            showTooltip: false
         }
     },
     async beforeMount() {
@@ -69,13 +80,15 @@ export default {
                         this.$router.push({
                             path: '/details',
                             query: {
-                                country: event.target.feature.properties.name
+                                land: event.target.feature.properties.name
                             }
                         })
                     }
                 },
                 mouseover: (event) => {
                     if (event.target && event.target.feature) {
+                        this.currentHover = event.target.feature
+                        this.showTooltip = true
                         layer.setStyle({
                             weight: 2,
                             color: '#3e1046',
@@ -87,6 +100,12 @@ export default {
                 mouseout: (event) => {
                     if (event.target && event.target.feature) {
                         this.$refs.map.leafletObject.resetStyle()
+                        this.showTooltip = false
+                        this.currentHover = {
+                            properties: {
+                                name: null
+                            }
+                        }
                     }
                 }
             })
