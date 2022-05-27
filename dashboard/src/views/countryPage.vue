@@ -15,13 +15,26 @@
                             <div class="col-12 mx-auto">
                                 <Card id="oil-card">
                                     <template #header>
-                                        <Line 
-                                            :chart-options="oilOptions"
-                                            :chart-data="oilPrice"
-                                            chart-id="oil-price-chart"
-                                            :width="400"
-                                            :height="180"
-                                        />
+                                        <TabView>
+                                            <TabPanel header="Simple">
+                                                <Line 
+                                                    :chart-options="oilOptions"
+                                                    :chart-data="oilPrice"
+                                                    chart-id="oil-price-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                            <TabPanel header="Detailed">
+                                                <Line 
+                                                    :chart-options="oilOptions"
+                                                    :chart-data="oilPrice"
+                                                    chart-id="oil-price-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                        </TabView>  
                                     </template>
                                     <template #content>
                                         {{ dataStory.oilSection }}
@@ -72,13 +85,26 @@
 
                                 <Card id="energy-gen-card">
                                     <template #header>
-                                        <Line
-                                            :chart-options="energyGenerationOptions"
-                                            :chart-data="energyGeneration"
-                                            chart-id="energy-generation-chart"
-                                            :width="400"
-                                            :height="180"
-                                        />
+                                        <TabView>
+                                            <TabPanel header="Simple">
+                                                <Line
+                                                    :chart-options="energyGenerationOptions"
+                                                    :chart-data="energyGeneration"
+                                                    chart-id="energy-generation-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                            <TabPanel header="Detailed">
+                                                <Line
+                                                    :chart-options="energyGenerationOptions"
+                                                    :chart-data="energyGeneration"
+                                                    chart-id="energy-generation-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                        </TabView>
                                     </template>
                                     <template #content>
                                         {{ dataStory.energyGenSection }}
@@ -91,13 +117,26 @@
 
                                 <Card id="emissions-card">
                                     <template #header>
-                                        <Line
-                                            :chart-options="emissionOptions"
-                                            :chart-data="emissions"
-                                            chart-id="energy-emissions-chart"
-                                            :width="400"
-                                            :height="180"
-                                        />
+                                        <TabView>
+                                            <TabPanel header="Simple">
+                                                <Line
+                                                    :chart-options="emissionOptions"
+                                                    :chart-data="emissions"
+                                                    chart-id="energy-emissions-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                            <TabPanel header="Detailed">
+                                                <Line
+                                                    :chart-options="emissionOptions"
+                                                    :chart-data="emissions"
+                                                    chart-id="energy-emissions-chart"
+                                                    :width="400"
+                                                    :height="180"
+                                                />
+                                            </TabPanel>
+                                        </TabView>
                                     </template>
                                     <template #content>
                                         {{ dataStory.emissionsSection }}

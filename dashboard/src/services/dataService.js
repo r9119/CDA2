@@ -1,13 +1,34 @@
 import Api from './Api'
 
 export default {
-    index() {
-        return Api().get('/cda-dashboard/index')
+    indexOilPrice() {
+        return Api().get('/index-oil-price')
     },
-    indexCountryData(country) {
-        return Api().get('/cda-dashboard/index-country', {
+    indexEmissions(country) {
+        return Api().get('/index-emissions', {
             params: {
-                country: country
+                country
+            }
+        })
+    },
+    indexElecPrice(country) {
+        return Api().get('/index-elec-price', {
+            params: {
+                country
+            }
+        })
+    },
+    indexEnergyGen(country) {
+        return Api().get('/index-energy-gen', {
+            params: {
+                country
+            }
+        })
+    },
+    indexElecShare(country) {
+        return Api().get('/index-share-of-elec', {
+            params: {
+                country
             }
         })
     }

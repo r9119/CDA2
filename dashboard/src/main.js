@@ -18,6 +18,8 @@ import SplitButton from 'primevue/splitbutton'
 import SpeedDial from 'primevue/speeddial'
 import Divider from 'primevue/divider'
 import Card from 'primevue/card'
+import TabView from 'primevue/tabview';
+import TabPanel from 'primevue/tabpanel';
 
 const app = createApp(App)
 
@@ -33,5 +35,8 @@ app.component('SplitButton', SplitButton)
 app.component('SpeedDial', SpeedDial)
 app.component('Card', Card)
 app.component('Divider', Divider)
+app.component('TabView', TabView)
+app.component('TabPanel', TabPanel)
+
 
 app.mount('#app')
