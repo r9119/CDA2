@@ -1,7 +1,7 @@
 ---
 title: "Einfluss Ölpreis auf Treibhausgasausstoss "
 author: "Rami Tarabishi, Alexander Shanmugam"
-date: "`r format(Sys.time(), '%B %Y')`"
+date: "`r format(Sys.time(), "%B %Y")`"
 
 output:
   html_document:
@@ -15,7 +15,7 @@ output:
     self_contained: no
   pdf_document:
     toc: yes
-    toc_depth: '2'
+    toc_depth: "2"
 
 ---
 
@@ -25,7 +25,7 @@ output:
 
 # Management Summary {.tabset}
 ## Fragestellung
-Es stellt sich die Frage, ob bei steigenden Ölpreisen, die Kraftwerksbetreiber ihr Portfolio von technologisch unterschiedlichen Kraftwerken längerfristig umbauen – hin zu Technologien mit tiefen SRMC.
+Es stellt sich die Frage, ob bei steigenden Ölpreisen, die Kraftwerksbetreiber ihr Portfolio von technologisch unterschiedlichen Kraftwerken längerfristig umbauen - hin zu Technologien mit tiefen SRMC.
 
 Ein solcher Effekt müsste in niedrigeren CO2-Werten pro kWh elektrische Energie sichtbar werden (da die fossilen Kraftwerke abgeschaltet würden). 
 
@@ -54,282 +54,35 @@ Noch unklar
 # - research  lifecicle of purchased oil
 # - write data to MongoDB
 
-library(tidyverse)    #opinionated collection of R packages designed for data science
-library(lubridate)    #simplifies working with dates
-library(knitr)        #tools to make nice outputs
-library(plotly)       #interactive plots
-library(httr)         #for http requests (to get data)
-library(jsonlite)     #to deal with json
-library(mongolite)    #to connect to mongodb
-library(cbsodataR)    #Netherland Data
-
-library(SPARQL)
-```
-## Spain
-```{r get_data}
-# --- Function to retreive data from API ---
-call_api <- function(url) {
-  getData <- GET(url)
-  print(status_code(getData))
-  # Getting status of HTTP Call
-  if(status_code(getData) == 200)
-    {
-      # Converting content to text
-      getDataText <- content(getData,
-                                "text", encoding = "UTF-8")
-      # Parsing data in JSON
-      getDataJson <- fromJSON(getDataText,
-                              flatten = TRUE)
-      return(getDataJson)
-    }
-}
-
-# --- Function to write retrieved data to files ---
-write_spain_data_to_db <- function(data, dataType) {
-  for (t in data$type) {
-    type <- gsub('[^[:alnum:] ]', '', t)
-    dataCollection <- mongo(collection = paste(dataType, type, sep = '-'), db = "Spain")
-    dataCollection$insert(data[data$type == t, ]$attributes.values[[1]])
-  }
-}
-
-# --- get Data from spanish API ---
-get_data_spain <- function(years, url, trunc, dataType) {
-  for (year in years) {
-    if (year != years[length(years)]) {
-      call <- paste(url, '?start_date=', year, '-01-01T00:00&end_date=', year, '-12-31T23:59&time_trunc=', trunc, sep = '')
-    }
-    else {
-      call <- paste(url, '?start_date=', year, '-01-01T00:00&end_date=', Sys.Date(), 'T23:59&time_trunc=', trunc, sep = '')
-    }
-    data <- call_api(call)$included
-    write_spain_data_to_db(data, dataType)
-  }
-}
-
-# --- get Data from dutch API ---
-get_data_nl <- function() {
-
-}
-
-# --- get Data from polish API ---
-get_data_pl <- function(labelUrl, url, dataType) {
-  labels <- call_api(labelUrl)$results
-  apiData <- call_api(url)$results
-  labels <- arrange(labels, id)
-  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n1, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
-  for (id in apiData$id) {
-    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
-    collection <- mongo(collection = paste(dataType, apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
-    collection$insert(dataPerLabel)
-  }
-}
-# --- get all data from every country and fill into mongodb ---
-fill_db <- function() {
-# --- Oil Price ---
-# provided by eia.gov
-
-oilPriceData <- call_api('https://api.eia.gov/v2/petroleum/pri/spt/data?api_key=a6BwytwjsQLCDb3KXMwJZE11WPoT64BnazpYaYEE&frequency=daily&facets[product][]=EPCBRENT&data[]=value')$response$data
-oilPriceData <- oilPriceData %>% select(
-  -duoarea,
-  -'area-name',
-  -product,
-  -'product-name',
-  -process,
-  -'process-name',
-  -series,
-  -'series-description',
-  -units)
-oilPriceCollection <- mongo(collection = 'BrentOilPrice', db = 'General')
-oilPriceCollection$insert(oilPriceData)
-
-# --- Share of Electricity By Source ---
-# provided by Our World in Data though without API access
-
-
-# Spain
-# provided by ree.es api
-
-## --- generation ---
-get_data_spain(2011:2022, 'https://apidatos.ree.es/en/datos/generacion/estructura-generacion', 'day', 'energyGeneration')
-
-## --- emissions ---
-get_data_spain(2011:2022, 'https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2', 'day', 'emissions')
-
-## --- generation potential ---
-get_data_spain(2015:2022, 'https://apidatos.ree.es/en/datos/generacion/potencia-instalada', 'month', 'generationPotential')
-
-## --- electricity Prices ---
-get_data_spain(2014:2022, 'https://apidatos.ree.es/en/datos/mercados/componentes-precio', 'month', 'electricityPrice')
-
-# Netherlands
-# provided by R package cbsodataR
-
-# 37823eng may also be interesting -> electricity ; production and means of production (input and output figures)
-
-## --- generation ---
-generationDataNL <- cbs_get_data("84575ENG") # Energy Production: https://www.cbs.nl/en-gb/figures/detail/84575ENG?q=electricity
-generationDataNL <- cbs_add_label_columns(generationDataNL) %>% select(-Periods)
-energyCollectionNL <- mongo(collection = 'energyGeneration', db = 'Netherlands')
-energyCollectionNL$insert(energyDataNL)
-
-## --- emissions ---
-emissionDataNL <- cbs_get_data("37221eng") # Emission Data: https://www.cbs.nl/en-gb/figures/detail/37221eng?q=electricity%20emission Source 346700 = Energy supply
-emissionDataNL <- emissionDataNL %>% filter(Sources == '346700   ') # Filter for emissions by energy production
-emissionDataNL <- cbs_add_label_columns(emissionDataNL) %>% select(-Periods, -Sources, -Sources_label)
-emissionsCollectionNL <- mongo(collection = 'emissions', db = 'Netherlands')
-emissionsCollectionNL$insert(emissionDataNL)
-
-## --- generation potential ---
-generationPotentialNL <- cbs_get_data('82610ENG')
-generationPotentialNL <- cbs_add_label_columns(generationPotentialNL) %>% select(-EnergySourcesTechniques, -Periods)
-potentialCollectonNL <- mongo(collection = 'generationPotential', db = 'Netherlands')
-potentialCollectonNL$insert(generationPotentialNL)
-
-## --- electricity Prices (average energy prices for consumers) ---
-electricityPricesNL <- cbs_get_data("84672ENG") # https://www.cbs.nl/en-gb/figures/detail/84672ENG?q=%22average%20energy%20prices%22
-electricityPricesNL <- cbs_add_label_columns(electricityPricesNL) %>% select(-VAT, -Period)
-pricesCollectionNL <- mongo(collection = 'electricityPrices', db = 'Netherlands')
-pricesCollectionNL$insert(electricityPricesNL)
-
-# Poland
-# provided by state api
-
-## --- generation ---
-labelUrl <- 'https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1674&lang=en'
-url <- 'https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999&year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008&year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017&year=2018&year=2019&year=2020&year=2021&year=2022&var-id=7883&var-id=76361&var-id=7884&var-id=79238&var-id=7885&var-id=7936&var-id=194886&var-id=288086&var-id=454054'
-
-#get_data_pl(labelUrl, url, 'energyGeneration')
-  labels <- call_api(labelUrl)$results
-  apiData <- call_api(url)$results
-  labels <- arrange(labels, id)
-  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n1, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
-  for (id in apiData$id) {
-    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
-    collection <- mongo(collection = paste('energyGeneration', apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
-    collection$insert(dataPerLabel)
-  }
-
-## --- emissions ---
-
-
-## --- generation potential ---
-labelUrl <- 'https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1672&lang=en'
-url <- 'https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999&year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008&year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017&year=2018&year=2019&year=2020&year=2021&year=2022&var-id=4834&var-id=79240&var-id=79242&var-id=4835&var-id=4836&var-id=4837&var-id=4838&var-id=4839&var-id=4840&var-id=76364'
-
-#get_data_pl(labelUrl, url, 'generationPotential')
-  labels <- call_api(labelUrl)$results
-  apiData <- call_api(url)$results
-  labels <- arrange(labels, id)
-  apiData <- apiData %>% mutate(type = labels[labels$id == id,]$n2, measureUnit = labels[labels$id == id,]$measureUnitName) %>% select(-measureUnitId)
-  for (id in apiData$id) {
-    dataPerLabel <- apiData[apiData$id == id, ]$values[[1]]
-    collection <- mongo(collection = paste('generationPotential', apiData[apiData$id == id, ]$type, sep = '-'), db = 'Poland')
-    collection$insert(dataPerLabel)
-  }
-
-## --- electricity prices ---
-
-
-# Sweden
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Finnland
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Portugal
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Austria
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Greece
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Iceland
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-
-
-# Turkey
-
-## --- generation ---
-
-## --- emissions ---
-
-## --- generation potential ---
-
-## --- electricity prices ---
-}
-
+library(tidyverse) # opinionated collection of R packages designed for data science
+library(lubridate) # simplifies working with dates
+library(knitr) # tools to make nice outputs
+library(plotly) # interactive plots
+library(jsonlite) # to deal with json
+library(mongolite) # to connect to mongodb
 ```
 
 ## Oil Price
 
 ```{r read-OP, warning=FALSE}
-oilPrice <- as_tibble(read.csv('./dataSets/DCOILBRENTEU.csv', header = TRUE)) #source: https://fred.stlouisfed.org/series/DCOILBRENTEU
+oil_price_collection <- mongo(collection = "BrentOilPrice", db = "General")
+oil_price <- as_tibble(oil_price_collection$find(query = "{}"))
 
-glimpse(oilPrice)
+glimpse(oil_price)
 # Month needs to be converted to a Date Format
-oilPrice <- rename(oilPrice, c('Date' = 'DATE', 'Price' = 'DCOILBRENTEU')) %>%
+oil_price <- rename(oil_price, c("Date" = "period", "Price" = "value")) %>%
   mutate(Date = ymd(Date), Price = as.numeric(Price), Year = year(Date)) %>%
-  arrange(oilPrice, Date)
+  arrange(oil_price, Date)
 
-glimpse(oilPrice)
+glimpse(oil_price)
 
-kable(summary(oilPrice)) #Price: USD per Barrel
+kable(summary(oil_price)) # Price: USD per Barrel
 ```
 
 ### Grafische Übersicht
 
 ```{r plot-OP}
-p <- ggplot(oilPrice, aes(Date, Price)) +
+p <- ggplot(oil_price, aes(Date, Price)) +
   geom_line() +
   ggtitle("Brent Oil Price")
 ggplotly(p)
@@ -337,76 +90,141 @@ ggplotly(p)
 
 ## Share of electricity by source
 ```{r read-SOES}
-shareOfElecBySource <- as_tibble(read.csv('./dataSets/share-elec-by-source.csv'))  %>% filter(Code == 'ESP') #source: https://ourworldindata.org/grapher/share-elec-by-source?country=~ESP
+# renewables
+other_renewables_potential_collection <- mongo(collection = "generationPotential-Other renewables-red", db = "ES")
+other_renewables_potential <- as_tibble(other_renewables_potential_collection$find("{}"))
 
-glimpse(shareOfElecBySource)
+hydro_potential_collection <- mongo(collection = "generationPotential-Hydro-red", db = "ES")
+hydro_potential <- as_tibble(hydro_potential_collection$find("{}"))
 
-kable(summary(shareOfElecBySource))
+solar_potential_collection <- mongo(collection = "generationPotential-Solar photovoltaic-red", db = "ES")
+solar_potential <- as_tibble(solar_potential_collection$find("{}"))
+
+# diesel and oil
+diesel_potential_collection <- mongo(collection = "generationPotential-Diesel engines-red", db = "ES")
+diesel_potential <- as_tibble(diesel_potential_collection$find("{}"))
+
+share_of_elec_by_source <- cbind(other_renewables_potential, hydro_potential, solar_potential, diesel_potential)
+names(share_of_elec_by_source) <- c(
+  "otherRenewables", "otherRenewablesPercentage", "otherRenewablesDatetime",
+  "hydro", "hydroPercentage", "hydroDatetime",
+  "solar", "solarPercentage", "solarDatetime",
+  "diesel", "dieselPercentage", "datetime"
+)
+share_of_elec_by_source <- select(share_of_elec_by_source, -otherRenewablesDatetime, -hydroDatetime, -solarDatetime) %>%
+  mutate(datetime = ymd_hms(datetime), date = date(datetime))
+
+glimpse(share_of_elec_by_source)
+
+kable(summary(share_of_elec_by_source))
 ```
 
 ### Grafische Übersicht
 ```{r plot-SOES}
-shareOfElecBySource_long <- shareOfElecBySource %>% pivot_longer(Coal:Other.renewables, names_to="Source", values_to="Percent")
+# shareOfElecBySource_long <- shareOfElecBySource %>% pivot_longer(Coal:Other.renewables, names_to="Source", values_to="Percent")
 
-p <- ggplot(shareOfElecBySource_long, aes(x = Year, y = Percent, color = Source)) +
-  geom_line() +
-  ggtitle("Share of electricity production by source, Spain")
-ggplotly(p)
+# p <- ggplot(shareOfElecBySource_long, aes(x = Year, y = Percent, color = Source)) +
+#   geom_line() +
+#   ggtitle("Share of electricity production by source, Spain")
+
+
+# p <- ggplot(shareOfElecBySource) +
+#   geom_line(aes(x = datetime, y = hydro))
+
+# ggplotly(p)
 ```
 
 ## Electricity prices
 
 ```{r read-EP, warning=FALSE}
-elecPrices <- as_tibble(read.csv('./dataSets/Electricity_prices_spain.csv') %>% filter(TAX == "All taxes and levies included", CURRENCY == "Euro")) #source: https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=nrg_pc_204
+elec_prices_collection <- mongo(collection = "electricityPrice-Daily market-red", db = "ES")
+elec_prices <- as_tibble(elec_prices_collection$find("{}"))
 
-glimpse(elecPrices)
-elecPrices <- elecPrices %>% mutate(Value = as.numeric(Value)) %>%
-  select(-CURRENCY, -TAX, -UNIT, -GEO, -PRODUCT, -CONSOM)
-elecPrices <- drop_na(elecPrices)
+# elecPrices <- as_tibble(read.csv("./dataSets/Electricity_prices_spain.csv") %>%
+#  filter(TAX == "All taxes and levies included", CURRENCY == "Euro")) #source: https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=nrg_pc_204
 
-glimpse(elecPrices)
+glimpse(elec_prices)
 
-kable(summary(elecPrices)) #Prices in EUR
+elec_prices <- mutate(elec_prices, datetime = ymd_hms(datetime), date = date(datetime))
+
+glimpse(elec_prices)
+
+kable(summary(elec_prices)) # Prices in EUR
 ```
 
 ### Grafische Übersicht
 ```{r plot-EP}
-p <- ggplot(elecPrices, aes(TIME, Value, group = 1)) +
+p <- ggplot(elec_prices, aes(datetime, value)) +
   geom_line() +
-  ggtitle("Electricity price in Spain by Semester")
+  ggtitle("Electricity price in Spain")
 
 ggplotly(p)
 ```
 
 ## Energy Generation
 ```{r read-EG}
-energyGeneration <- as_tibble(read.csv('./dataSets/Spain/energyGeneration/Total generation-energyGeneration.csv')) #https://www.ree.es/en/apidatos
+energy_generation_diesel_collection <- mongo(collection = "energyGeneration-Diesel engines-red", db = "ES")
+energy_generation_diesel <- as_tibble(energy_generation_diesel_collection$find("{}"))
 
-glimpse(energyGeneration) # GWh
-energyGeneration <- energyGeneration %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime)
-glimpse(energyGeneration) # MWh
+energy_generation_collection <- mongo(collection = "energyGeneration-Total generation-red", db = "ES")
+energy_generation <- as_tibble(energy_generation_collection$find("{}"))
+# energyGeneration <- as_tibble(read.csv("./dataSets/Spain/energyGeneration/Total generation-energyGeneration.csv")) #https://www.ree.es/en/apidatos
 
-kable(summary(energyGeneration)) #Energy Generation in kWh
+glimpse(energy_generation_diesel)
+
+energy_generation_diesel <- energy_generation_diesel %>%
+  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
+  select(-datetime)
+energy_generation <- energy_generation %>%
+  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
+  select(-datetime)
+glimpse(energy_generation_diesel)
+
+
+kable(summary(energy_generation_diesel))
+
+## Eurostat data
+energy_generation_collection_eurostat <- mongo(collection = "energyGeneration", db = "AT")
+energy_generation_eurostat <- energy_generation_collection_eurostat$find("{}")
+energy_generation_eurostat <- subset(energy_generation_eurostat, code == "O4000XBIO")$data
+energy_generation_eurostat <- as.data.frame(energy_generation_eurostat) %>% mutate(Date = ymd(Date))
 ```
+
 ### Grafische Übersicht
 ```{r plot-EG}
-p <- ggplot(energyGeneration, aes(date, value)) +
-  geom_line() +
-  labs(y = 'Energy Production in MWh', title = 'Spain\'s Electricity production in MWh')
+p <- ggplot(energy_generation_diesel) +
+  geom_line(aes(date, value)) +
+  labs(y = "Energy Production", title = "Spain\'s Electricity production from Diesel")
+ggplotly(p)
+
+p <- ggplot(energy_generation_diesel) +
+  geom_line(aes(date, percentage)) +
+  labs(y = "Energy Production", title = "Spain\'s Electricity production percentage from Diesel")
+ggplotly(p)
+
+p <- ggplot(energy_generation) +
+  geom_line(aes(date, value)) +
+  labs(y = "Energy Production", title = "Spain\'s total Electricity production")
 ggplotly(p)
 ```
+
 ## Emissions
 ```{r emissions}
-emissions <- as_tibble(read.csv("./dataSets/Spain/emissions/Total tCO2 eq-emissions.csv"))
-glimpse(emissions)
-emissions <- emissions %>% mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>% select(-datetime)
-glimpse(emissions) #tCO2 eq./MWh
+emissions_diesel_collection <- mongo(collection = "emissions-Diesel engines-red", db = "ES")
+emissions_diesel <- as_tibble(emissions_diesel_collection$find("{}"))
+
+glimpse(emissions_diesel)
+emissions_diesel <- emissions_diesel %>%
+  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
+  select(-datetime)
+glimpse(emissions_diesel) # tCO2 eq./MWh
 ```
+
 ### Grafische Übersicht
 ```{r plot-emissions}
-p <- ggplot(emissions, aes(date, value)) +
+p <- ggplot(emissions_diesel, aes(date, value)) +
   geom_line() +
-  labs(y = 'Emissions in ?', title = 'Spain\'s energy production emissions')
+  labs(y = "Emissions in ?", title = "Spain\'s diesel energy production emissions")
 ggplotly(p)
 ```
 
@@ -419,70 +237,94 @@ ggplotly(p)
 
 ```{r}
 # ---- data prep ----
-data <- oilPrice %>% filter(Year >= 2011) %>% select(-Year)
+data <- oil_price %>%
+  filter(Year >= 2011) %>%
+  select(-Year)
 glimpse(data)
 tail(data)
-energyGeneration <- energyGeneration %>% filter(date %in% data$Date) %>% mutate(GeneratedEnergy = value) %>% select(-percentage, -date, -value) 
+energy_generation_diesel <- energy_generation_diesel %>%
+  filter(date %in% data$Date) %>%
+  mutate(GeneratedEnergy = value) %>%
+  select(-percentage, -date, -value)
 dim(data)
-dim(energyGeneration)
+dim(energy_generation_diesel)
 
-emissions <- emissions %>% mutate(emissions = value) %>% select(-value) %>% filter(date %in% data$Date)
+emissions_diesel <- emissions_diesel %>%
+  mutate(emissions = value) %>%
+  select(-value) %>%
+  filter(date %in% data$Date)
 
-dim(emissions)
+dim(emissions_diesel)
 
-data <- data %>% cbind(energyGeneration, emissions)
+data <- data %>% cbind(energy_generation_diesel, emissions_diesel)
 glimpse(data)
-data <- data %>% mutate(totalEmissions = emissions * GeneratedEnergy/1000)
 data$day <- weekdays(data$date)
 glimpse(data)
 
+
+# --- data prep eurostat ---
+oil_price$month <- months(oil_price$Date)
+oil_price$year <- year(oil_price$Date)
+energy_generation_eurostat$month <- months(energy_generation_eurostat$Date)
+energy_generation_eurostat$year <- year(energy_generation_eurostat$Date)
+
+oil_price_monthly <- aggregate(Price ~ month + year, oil_price, sum)
+
+data_eurostat <- energy_generation_eurostat %>% merge(oil_price_monthly, by = c("Year", "Month"))
 # ---- analysis ----
 # hist(data$Price)
 # hist(data$emissions)
 # shapiro.test(data$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
 # shapiro.test(data$emissions)
 
- p <- ggplot(data, aes(Price, emissions, color = year(date))) +
-   geom_point() +
-   geom_smooth(method = 'lm') +
-   labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Years 2010+')
- ggplotly(p)
+p <- ggplot(data, aes(Price, GeneratedEnergy, color = year(date))) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between emissions and the Brent Oil Price Years 2010+")
+ggplotly(p)
 
- lm <- lm(emissions ~ Price, data = data)
+p <- ggplot(data_eurostat, aes(Price, Value, color = Date)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between energy generation and the Brent Oil Price Years 2010+")
+ggplotly(p)
 
- summary(lm)
+lm <- lm(emissions ~ Price, data = data)
+
+summary(lm)
 
 p1 <- ggplot(data) +
   geom_line(aes(x = date, y = scale(Price), color = "Price")) +
-  geom_smooth(aes(x = date, y = scale(emissions), color = "Emissions smoothed"), method = 'loess', span = 0.1, ) +
+  geom_smooth(aes(x = date, y = scale(Price), color = "Price smoothed"), method = "loess", span = 0.1, ) +
+  geom_smooth(aes(x = date, y = scale(emissions), color = "Emissions smoothed"), method = "loess", span = 0.1, ) +
   geom_line(aes(x = date, y = scale(emissions), color = "Emissions", alpha = .5))
 
 ggplotly(p1)
 
-for (m in unique(year(data$date))){
-  yearlyData <- filter(data, year(date) == m)
+for (m in unique(year(data$date))) {
+  yearly_data <- filter(data, year(date) == m)
 
-  hist(yearlyData$Price)
-  hist(yearlyData$emissions)
-  shapiro.test(yearlyData$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
-  shapiro.test(yearlyData$emissions)
+  hist(yearly_data$Price)
+  hist(yearly_data$GeneratedEnergy)
+  shapiro.test(yearly_data$Price) # Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
+  shapiro.test(yearly_data$GeneratedEnergy)
 
 
 
-  glimpse(yearlyData)
-  p2 <- ggplot(yearlyData, aes(Price, emissions, color = date)) +
+  glimpse(yearly_data)
+  p2 <- ggplot(yearly_data, aes(Price, GeneratedEnergy, color = date)) +
     geom_point() +
-    geom_smooth(method = 'lm') +
-    labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = paste('Correlation between emissions and the Brent Oil Price Month', m))
+    geom_smooth(method = "lm") +
+    labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = paste("Correlation between emissions and the Brent Oil Price Year", m))
   print(p2)
 
-  lm <- lm(emissions ~ Price, data = yearlyData)
+  lm <- lm(GeneratedEnergy ~ Price, data = yearly_data)
   res <- resid(lm)
 
   plot(fitted(lm), res)
 
-  #add a horizontal line at 0 
-  abline(0,0)
+  # add a horizontal line at 0
+  abline(0, 0)
 
   print(summary(lm))
 }
@@ -497,8 +339,8 @@ for (m in unique(year(data$date))){
 
 # p2 <- ggplot(data2019, aes(Price, emissions, color = date)) +
 #   geom_point() +
-#   geom_smooth(method = 'lm') +
-#   labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Year 2019')
+#   geom_smooth(method = "lm") +
+#   labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between emissions and the Brent Oil Price Year 2019")
 # ggplotly(p2)
 
 # glimpse(data2019)
@@ -516,8 +358,8 @@ for (m in unique(year(data$date))){
 
 # p2 <- ggplot(dataPast2014, aes(Price, emissions, color = date)) +
 #   geom_point() +
-#   geom_smooth(method = 'lm') +
-#   labs(y = 'Emissions in ?', x = "Brent Oil Price (USD)", title = 'Correlation between emissions and the Brent Oil Price Years 2015+')
+#   geom_smooth(method = "lm") +
+#   labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between emissions and the Brent Oil Price Years 2015+")
 # ggplotly(p2)
 
 # glimpse(dataPast2014)

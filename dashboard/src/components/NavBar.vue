@@ -9,12 +9,9 @@
 </template>
 
 <script>
-import earth from 'vue-material-design-icons/earth.vue';
+
 
 export default {
-    components: {
-        earth
-    },
     data() {
         return {
             store: null
