@@ -6,7 +6,7 @@ library(httr) # for http requests (to get data)
 library(jsonlite) # to deal with json
 library(mongolite) # to connect to mongodb
 library(magrittr)
-# library(cbsodataR) # Netherland Data
+# library(cbsodataR) # Netherland Dat
 
 # --- Function to retreive data from API ---
 callApi <- function(url) {
