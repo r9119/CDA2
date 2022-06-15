@@ -112,15 +112,17 @@ getAndWriteFlatEurostatData <- function(codes, labels, second_code = NULL, secon
         temp_name <- paste(colname, "percentage")
           flat_country_data[, temp_name] <- flat_country_data[, colname] / flat_country_data[, "Total"]
       }
-      if (collection == "energyGeneration2019") {
-        flat_country_data %<>% filter(year(date) == 2019)
-
-      }
     }
-    flat_row$data <- list(flat_country_data)
+    if (collection == "energyGeneration2019") {
+      flat_country_data %<>% filter(year(date) == 2019) %>% select(-date)
+      means_data <- data.frame(as.list(colMeans(flat_country_data)))
+      flat_row$data <- list(means_data)
+    } else{
+      flat_row$data <- list(flat_country_data)
+    }
     flat_data <- rbind(flat_data, flat_row)
   }
-  flat_collection <- mongo(collection = paste("flat", collection, sep = ""), db = "cda2")
+  flat_collection <- mongo(collection = collection, db = "cda2")
   flat_collection$insert(flat_data)
 }
 
@@ -193,7 +195,7 @@ oil_price_collection$insert(oil_price_data)
 
 
 yearly_oil_price_df <- mutate(oil_price_data, year = year(period)) %>%
-  filter(year >= 1990 & year <= 2019) %>%
+  filter(year >= 1990 & year <= 2020) %>%
   group_by(year) %>%
   summarise(sum = sum(value), avg = sum / n())
 
@@ -207,6 +209,15 @@ emissions_europe <- read.csv("./datasets/ghg-emissions-by-sector.csv") %>%
 emissions_europe_collection <- mongo(collection = "emissionsEurope", db = "cda2")
 emissions_europe_collection$insert(emissions_europe)
 
+co2_prices_europe <- read.csv("./datasets/EMBER_Coal2Clean_EUETSPrices.csv") %>%
+  mutate(Date = ymd_hms(Date))
+
+co2_price_europe_collection <- mongo(collection = "co2PriceEurope", db = "cda2")
+co2_price_europe_collection$insert(co2_prices_europe)
+
+lcoe <- data.frame("Gas Peaker" = 175, "Nuclear" = 155, "Solar Thermal Power" = 141, "Coal" = 109, "Gas" = 56, "Onshore Wind" = 41, "Solar Photovoltaic" = 40, "Offshore Wind" = 115)
+lcoe_collection <- mongo(collection = "LCOE", db = "cda2")
+lcoe_collection$insert(lcoe)
 
 # --- data from eurostat ---
 ## --- global variables ---
@@ -243,20 +254,13 @@ country_list <- data.frame(country_code, country)
 siec_codes <- c(
   "C0000",
   "CF",
-  # "CF_NR",
-  # "CR_R",
   "G3000",
   "N9000",
   "O4000XBIO",
   "RA100",
-  # "RA110",
-  # "RA120",
-  # "RA130",
   "RA200",
-  # "RA300",
   "RA310",
   "RA320",
-  # "RA400",
   "RA410",
   "RA420",
   "RA500",
@@ -269,20 +273,13 @@ siec_codes <- c(
 siec_labels <- c(
   "Coal and manufactured gases",
   "Combustible fuels",
-  # "Combustible fuels - non-renewable",
-  # "Combustible fuels - renewable",
   "Natural gas",
   "Nuclear fuels and other fuels n.e.c.",
   "Oil and petroleum products (exluding biofuel portion)",
   "Hydro",
-  # "Pure Hydro power",
-  # "Mixed hydro power",
-  # "Pumped hydro power", ##
   "Geothermal",
-  # "Wind",
   "Wind on shore",
   "Wind off shore",
-  # "Solar",
   "Solar thermal",
   "Solar photovoltaic",
   "Tide, wave, ocean", ##
@@ -295,7 +292,7 @@ siec_labels <- c(
 getAndWriteFlatEurostatData(
   codes = siec_codes,
   labels = siec_labels,
-  collection = "EnergyGeneration",
+  collection = "energyGeneration",
   url_part_one = "nrg_cb_pem?siec=",
   since_period = "2016M01&",
   precision = "month"
@@ -312,23 +309,36 @@ getAndWriteFlatEurostatData(
 
 # ## --- emissions ---
 getAndWriteFlatEurostatData(
-  codes = c("CRF1A1A"), #, "CRF1A1B", "CRF1A1C", "CRF1B2", "CRF1", "CRF1A1"),
+  codes = c("CRF1A1A"),
   labels = c(
     "Fuel combustion in public electricity and heat production"
-#    "Energy", "Fuel combustion in energy industries", 
-#    "Fuel combustion in petroleum refining", "Fuel combustion in manufacture of solid fuels and other energy industries", "Oil, natural gas and other energy production - fugitive emissions"
   ),
-  second_code = "GHG", #"CH4", "CH4_CO2E", "CO2", "HFC_CO2E", "HFC_PFC_NSP_CO2E", "N2O", "N2O_CO2E", "NF3_CO2E", "PFC_CO2E", "SF6_CO2E"),
-  second_label = "Greenhouse gases (CO2, N2O in CO2 eq., CH4 in CO2 eq., HFC in CO2 eq., PFC in CO2 eq., SF6 in CO2 eq., NF3 in CO2 eq.",# "Methane", "Methane (CO2 eq.)", "Carbon dioxide",
-    #"Hydrofluorocarbones (CO2 eq.)", "Hydrofluorocarbones and perfluorocarbones - not specified mix (CO2 eq.)", "Nitrous oxide", "Nitrous oxide (CO2 eq.)", "Nitrogen trifluoride (CO2 eq.)",
-    #"Perfluorocarbones (CO2 eq.)", "Sulphur hexafluoride (CO2 eq.)"
-  collection = "Emissions",
+  second_code = "GHG",
+  second_label = "Greenhouse gases (CO2, N2O in CO2 eq., CH4 in CO2 eq., HFC in CO2 eq., PFC in CO2 eq., SF6 in CO2 eq., NF3 in CO2 eq.",
+  collection = "emissions",
   url_part_one = "env_air_gge?src_crf=",
   url_part_two = "&unit=THS_T&airpol=",
-  since_period = "1985",
+  since_period = "1990",
   precision = "year"
 )
 
+model_db <- data.frame()
+for (code in country_code) {
+  emissions_collection <- mongo(collection = "emissions", db = "cda2")
+  emissions <- as_tibble(emissions_collection$find(paste('{"country_code":"', code, '"}', sep = "")))
+  emissions <- emissions$data[[1]]
+  colnames(emissions) <- c("date", "emissions")
+  model_data <- merge(yearly_oil_price_df, emissions, by.x = "year", by.y = "date")
+  lm <- lm(emissions ~ avg, data = model_data, x = TRUE, y = TRUE)
+  point1 <- c("x" = 0, "y" = unname(coefficients(lm)[1]))
+  point2 <- c("x" = max(model_data$avg), "y" = unname(coefficients(lm)[2]) * unname(max(model_data$avg)) + unname(coefficients(lm)[1]))
+  model_row <- data.frame(country_code = code)
+  model_row$data <- list(rbind(point1, point2))
+  model_db <- rbind(model_db, model_row)
+}
+
+model_collection <- mongo(collection = "linearModel", db = "cda2")
+model_collection$insert(model_db)
 
 # ## --- share of energy by renewables ---
 # getAndWriteFlatEurostatData(
