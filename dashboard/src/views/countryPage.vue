@@ -25,8 +25,8 @@
                                             <TabPanel header="Simple">
                                                 <Line 
                                                     :chart-options="oilOptions"
-                                                    :chart-data="oilPrice"
-                                                    chart-id="oil-price-chart"
+                                                    :chart-data="oilPriceReduced"
+                                                    chart-id="oil-price-chart-reduced"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -35,7 +35,7 @@
                                                 <Line 
                                                     :chart-options="oilOptions"
                                                     :chart-data="oilPrice"
-                                                    chart-id="oil-price-chart"
+                                                    chart-id="oil-price-chart-full"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -77,7 +77,7 @@
                                                 <Line
                                                     :chart-options="elecPriceOptions"
                                                     :chart-data="elecPricesConsumerPre2007"
-                                                    chart-id="electricity-prices-chart"
+                                                    chart-id="consumer-electricity-prices-chart-pre-2007"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -86,7 +86,7 @@
                                                 <Line
                                                     :chart-options="elecPriceOptions"
                                                     :chart-data="elecPricesConsumerPost2007"
-                                                    chart-id="electricity-prices-chart"
+                                                    chart-id="consumer-electricity-prices-chart-post-2007"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -95,7 +95,7 @@
                                                 <Line
                                                     :chart-options="elecPriceOptions"
                                                     :chart-data="elecPricesIndustryPre2007"
-                                                    chart-id="electricity-prices-chart"
+                                                    chart-id="industry-electricity-prices-chart-pre-2007"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -104,7 +104,7 @@
                                                 <Line
                                                     :chart-options="elecPriceOptions"
                                                     :chart-data="elecPricesIndustryPost2007"
-                                                    chart-id="electricity-prices-chart"
+                                                    chart-id="industry-electricity-prices-chart-post-2007"
                                                     :width="400"
                                                     :height="180"
                                                 />
@@ -123,26 +123,13 @@
 
                                 <Card id="energy-gen-card">
                                     <template #header>
-                                        <TabView>
-                                            <TabPanel header="Simple">
-                                                <Line
-                                                    :chart-options="energyGenerationOptions"
-                                                    :chart-data="energyGeneration"
-                                                    chart-id="energy-generation-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                            <TabPanel header="Detailed">
-                                                <Line
-                                                    :chart-options="energyGenerationOptions"
-                                                    :chart-data="energyGeneration"
-                                                    chart-id="energy-generation-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                        </TabView>
+                                        <Line
+                                            :chart-options="energyGenerationOptions"
+                                            :chart-data="energyGeneration"
+                                            chart-id="energy-generation-chart"
+                                            :width="400"
+                                            :height="180"
+                                        />
                                     </template>
                                     <template #content>
                                         {{ dataStory.energyGenSection }}
@@ -155,26 +142,13 @@
 
                                 <Card id="emissions-card">
                                     <template #header>
-                                        <TabView>
-                                            <TabPanel header="Simple">
-                                                <Line
-                                                    :chart-options="emissionOptions"
-                                                    :chart-data="emissions"
-                                                    chart-id="energy-emissions-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                            <TabPanel header="Detailed">
-                                                <Line
-                                                    :chart-options="emissionOptions"
-                                                    :chart-data="emissions"
-                                                    chart-id="energy-emissions-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                        </TabView>
+                                        <Line
+                                            :chart-options="emissionOptions"
+                                            :chart-data="emissions"
+                                            chart-id="energy-emissions-chart"
+                                            :width="400"
+                                            :height="180"
+                                        />
                                     </template>
                                     <template #content>
                                         {{ dataStory.emissionsSection }}
@@ -199,6 +173,36 @@
                                         Das ist noch nicht fertig
                                     </template>
                                 </Card>
+
+                                <Divider>
+                                    <b>Wie siehts aus, wenn die menge fossile Brennstoffe ändert</b>
+                                </Divider>
+
+                                <Card>
+                                    <template #header>
+                                        <div class="col-10 mx-auto">
+                                            <div class="col-3" style="display: inline-block">
+                                                <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.options" optionLabel="label" placeholder="Technologie zum Erhöhen" />
+                                            </div>
+                                            <div class="col-6" style="display: inline-block">
+                                                <b>{{simulation.increasingSector.label}}:</b> {{simulation[simulation.increasingSector.value]}}
+                                                <Slider style="margin: 10px;" v-model="simulation[simulation.increasingSector.value]" @change="updateDecreaseValue" />
+                                                <b>{{simulation.decreasingSector.label}}:</b> {{simulation[simulation.decreasingSector.value]}}
+                                            </div>
+                                            <div class="col-3" style="display: inline-block">
+                                                <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.options" optionLabel="label" placeholder="Technologie zum Senken" />
+                                            </div>
+                                        </div>
+
+                                        <Bar
+                                            :chart-options="simulationOptions"
+                                            :chart-data="simulationData"
+                                            chart-id="simulation-chart"
+                                            :width="400"
+                                            :height="180"
+                                        />
+                                    </template>
+                                </Card>
                             </div>
                         </div>
                     </template>
@@ -212,12 +216,12 @@
 import Navbar from '../components/NavBar.vue'
 import dataService from '../services/dataService'
 import story from '../../../Data sets/spain-dataStory.json'
-import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
+import { Line, Bar } from 'vue-chartjs'
+import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
 
-ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
+ChartJS.register(Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
 
 // Dropdown with year selection by LM
 // One graph with all years with no scatter data to compare years
@@ -225,7 +229,8 @@ ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement,
 export default {
     components: {
         Navbar,
-        Line
+        Line,
+        Bar
     },
     data() {
         return {
@@ -233,6 +238,10 @@ export default {
             temp: null,
             oilOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -299,6 +308,10 @@ export default {
             },
             shareOfElecOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -341,6 +354,10 @@ export default {
             },
             elecPriceOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -369,6 +386,10 @@ export default {
             },
             energyGenerationOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -411,6 +432,10 @@ export default {
             },
             emissionOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -451,8 +476,39 @@ export default {
                     }
                 }
             },
+            simulationOptions: {
+                responsive: true,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Preis für 1 kWh (€)"
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return "€" + value 
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Sektor"
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "Wie energie preise mit der energie quellen ändern"
+                    }
+                }
+            },
             dataStory: null,
             oilPrice: {
+                datasets: []
+            },
+            oilPriceReduced: {
                 datasets: []
             },
             shareOfElec: {
@@ -475,8 +531,47 @@ export default {
                 labels: [],
                 datasets: []
             },
+            simulationData: {
+                labels: ['Haushald Preis', 'Industry Preis'],
+                datasets: [
+                   
+                ]
+            },
             energyGeneration: {},
-            emissions: {}
+            emissions: {},
+            simulation: {
+                options: [{
+                    label: "Kohle",
+                    value: "coalValue"
+                },{
+                    label: "Erdgas",
+                    value: "gasValue"
+                },{
+                    label: "Wind on shore",
+                    value: "windOnshoreValue"
+                },{
+                    label: "Wind off shore",
+                    value: "windOffshoreValue"
+                },{
+                    label: "Solar photovoltaik",
+                    value: "solarPhotoValue"
+                },{
+                    label: "Solar thermisch",
+                    value: "solarThermalValue"
+                }],
+                coalValue: 0,
+                gasvalue: 0,
+                windOnshoreValue: 0,
+                windOffshoreValue: 0,
+                solarPhotoValue: 0,
+                solarThermalValue: 0,
+                originalIncreaseValue: 13,
+                originalDecreaseValue: 0,
+                min: 0,
+                max: 100,
+                increasingSector: {label: "", value: ""},
+                decreasingSector: {label: "", value: ""}
+            }
         }
     },
     async beforeMount() {
@@ -487,7 +582,6 @@ export default {
 
         let colors = ["#4B1D91CC", "#661796CC", "#7D129ACC", "#910F9CCC", "#A4129DCC", "#B51A9CCC", "#C42599CC", "#D23293CC", "#DF408CCC", "#EB4E82CC", "#EF6276CC", "#F1756BCC", "#F38763CC", "#F3975ECC", "#F2A75FCC", "#F0B768CC", "#ECC579CC", "#E7D39ACC"]
         
-        // this.oilPrice.labels = this.temp.labels
         switch(country) {
             case "Spain":
                 this.oilPrice.datasets.push({
@@ -502,7 +596,6 @@ export default {
                 })
 
                 this.temp = (await dataService.indexInstalledCapacity(country)).data
-                // console.log(this.temp)
                 this.shareOfElec.labels = this.temp[0].data.labels
                 this.temp.forEach((element, index) => {
                     this.shareOfElec.datasets.push({
@@ -568,13 +661,113 @@ export default {
                     })
                 });
 
+                this.simulationData.datasets.push({
+                    label: "2019 Preise",
+                    data: [0.3, 0.2],
+                    borderColor: colors[0],
+                    backgroundColor: 'rgba(75, 29, 145, 0.3)',
+                    borderWidth: 2,
+                    borderSkipped: false
+                })
+                this.simulationData.datasets.push({
+                    label: "Simulations Preise",
+                    data: [0.25, 0.18],
+                    borderColor: colors[12],
+                    backgroundColor: "rgba(243, 135, 99, 0.3)",
+                    borderWidth: 2,
+                    borderSkipped: false
+                })
 
                 break
             default:
-                
+                this.oilPrice.datasets.push({
+                    label: "Brentölpreis",
+                    // parsing: false,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[0],
+                    tension: 0.5,
+                    pointRadius: 0,
+                    data: (await dataService.indexOilPrice()).data
+                })
+
+                this.temp = (await dataService.indexEnergyGen(country)).data
+                this.shareOfElec.labels = this.temp[0].data.labels
+                console.log(this.temp.splice(18))
+                this.temp.forEach((element, index) => {
+                    this.shareOfElec.datasets.push({
+                        label: element.name,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 0,
+                        data: element.data.percentage
+                    })
+                });
+                console.log(this.shareOfElec)
+
+                this.temp = (await dataService.indexConsumerElecPrice(country)).data
+                this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
+                this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
+                this.temp.slice(0,5).forEach((element, index) => {
+                    this.elecPricesConsumerPre2007.datasets.push({
+                        label: element.data.name,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 2,
+                        data: element.data.values
+                    })
+                });
+                this.temp.slice(-5).forEach((element, index) => {
+                    this.elecPricesConsumerPost2007.datasets.push({
+                        label: element.data.name,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 2,
+                        data: element.data.values
+                    })
+                });
+
+                this.temp = (await dataService.indexIndustryElecPrice(country)).data
+                this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
+                this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
+                this.temp.slice(0,9).forEach((element, index) => {
+                    this.elecPricesIndustryPre2007.datasets.push({
+                        label: element.data.name,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 2,
+                        data: element.data.values
+                    })
+                });
+                this.temp.slice(-7).forEach((element, index) => {
+                    this.elecPricesIndustryPost2007.datasets.push({
+                        label: element.data.name,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 2,
+                        data: element.data.values
+                    })
+                });
         }
+
+        this.temp = null
         
         this.loading = false
+    },
+    methods: {
+        updateDecreaseValue() {
+            this.simulation[this.simulation.decreasingSector.value] = this.simulation[this.simulation.increasingSector.value] - this.simulation.originalIncreaseValue
+        }
     }
 }
 </script>

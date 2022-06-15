@@ -22,11 +22,15 @@ module.exports = {
                 // }
                 let results = []
 
+                // data.map(i => {
+                //     results.push({
+                //         x: i.period,
+                //         y: i.value
+                //     })
+                // })
+
                 data.map(i => {
-                    results.push({
-                        x: i.period,
-                        y: i.value
-                    })
+                    results.push([i.period, i.value])
                 })
 
                 res.send(results);
@@ -222,7 +226,10 @@ module.exports = {
                                 code: i.code,
                                 data: {
                                     labels: i.data.map(a => a.date),
-                                    values: i.data.map(a => a.value)
+                                    values: i.data.map(a => a.value),
+                                    percentage: i.data.map((a, index) => {
+                                        return a.value / data[0].data[18].data[index].value
+                                    })
                                 }
                             })
                         })

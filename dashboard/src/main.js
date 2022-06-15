@@ -20,6 +20,7 @@ import Divider from 'primevue/divider'
 import Card from 'primevue/card'
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
+import Slider from 'primevue/slider';
 
 const app = createApp(App)
 
@@ -37,6 +38,7 @@ app.component('Card', Card)
 app.component('Divider', Divider)
 app.component('TabView', TabView)
 app.component('TabPanel', TabPanel)
+app.component('Slider', Slider)
 
 
 app.mount('#app')

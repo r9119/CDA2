@@ -67,7 +67,7 @@ import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, Poi
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
 
-ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
+ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, TimeScale)
 
 export default {
     components: {
@@ -91,6 +91,17 @@ export default {
                         ticks: {
                             callback: function(value, index, ticks) {
                                 return "$" + value
+                            }
+                        }
+                    },
+                    y1: {
+                        title: {
+                            display: true,
+                            text: "Europäische Emissionen (tonnen)"
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value + "t"
                             }
                         }
                     },
@@ -176,7 +187,8 @@ export default {
             },
             showTooltip: false,
             loading: false,
-            temp: null
+            temp: null,
+            downsampled: []
         }
     },
     async beforeMount() {
@@ -187,17 +199,21 @@ export default {
         circleMarker(latLng, { radius: 8 });
         this.mapIsReady = true;
 
-        // this.temp = (await dataService.indexOilPrice()).data
+        this.temp = (await dataService.indexOilPrice()).data
 
-        // this.oilPrice.datasets.push({
-        //     label: "Brent Oil Price",
-        //     fill: false,
-        //     borderWidth: 2,
-        //     borderColor: "rgb(75, 192, 192)",
-        //     tension: 0.5,
-        //     pointRadius: 0,
-        //     data: this.temp
-        // })
+        this.temp.map(i => {
+            this.downsampled.push((i.x), i.y)
+        })
+
+        this.oilPrice.datasets.push({
+            label: "Brent Oil Price",
+            fill: false,
+            borderWidth: 2,
+            borderColor: "#4B1D91CC",
+            tension: 0.5,
+            pointRadius: 0,
+            data: this.temp
+        })
 
         this.loading = false
     },

@@ -65,7 +65,7 @@ library(mongolite) # to connect to mongodb
 ## Oil Price
 
 ```{r read-OP, warning=FALSE}
-oil_price_collection <- mongo(collection = "BrentOilPrice", db = "General")
+oil_price_collection <- mongo(collection = "BrentOilPrice", db = "CDA2")
 oil_price <- as_tibble(oil_price_collection$find(query = "{}"))
 
 glimpse(oil_price)
