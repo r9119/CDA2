@@ -1,7 +1,7 @@
 ---
 title: "Einfluss Ölpreis auf Treibhausgasausstoss "
 author: "Rami Tarabishi, Alexander Shanmugam"
-date: "`r format(Sys.time(), "%B %Y")`"
+# date: "`r format(Sys.time(), "%B %Y")`"
 
 output:
   html_document:
@@ -60,12 +60,26 @@ library(knitr) # tools to make nice outputs
 library(plotly) # interactive plots
 library(jsonlite) # to deal with json
 library(mongolite) # to connect to mongodb
+library(magrittr)
+library(imputeTS)
+library(GGally)
+
+flattenTable <- function(input_data) {
+  flat_data <- data.frame()
+  for (i in seq_len(nrow(input_data))) {
+    label_data <- input_data[i, ]$data[[1]]
+    label_data %<>% mutate(datetime = ymd_hms(date), year = year(date), date = date(date), source = input_data[i, ]$label, type = input_data[i, ]$attributes_type)
+    flat_data <- rbind(flat_data, label_data)
+  }
+  flat_data %<>% arrange(date)
+  return(flat_data)
+}
 ```
 
 ## Oil Price
 
 ```{r read-OP, warning=FALSE}
-oil_price_collection <- mongo(collection = "BrentOilPrice", db = "CDA2")
+oil_price_collection <- mongo(collection = "BrentOilPrice", db = "cda2")
 oil_price <- as_tibble(oil_price_collection$find(query = "{}"))
 
 glimpse(oil_price)
@@ -88,39 +102,70 @@ p <- ggplot(oil_price, aes(Date, Price)) +
 ggplotly(p)
 ```
 
-## Share of electricity by source
+## Installed Capacity
 ```{r read-SOES}
+generation_potential_collection <- mongo(collection = "installedCapacity", db = "cda2")
+generation_potential <- as_tibble(generation_potential_collection$find('{"comment":"ree data"}'))
+generation_potential_data <- generation_potential$data[[1]]
+
+generation_potential_data <- flattenTable(generation_potential_data)
+
+total_generation_potential <- filter(generation_potential_data, source == "Total capacity")
+# generation_potential_data %<>% filter(source != "Total capacity")
+
+generation_potential_per_type <- group_by(generation_potential_data, date, type) %>%
+  summarise(total_percentage = sum(percentage))
+
 # renewables
-other_renewables_potential_collection <- mongo(collection = "generationPotential-Other renewables-red", db = "ES")
-other_renewables_potential <- as_tibble(other_renewables_potential_collection$find("{}"))
+# other_renewables_potential_collection <- mongo(collection = "generationPotential-Other renewables-red", db = "ES")
+# other_renewables_potential <- as_tibble(other_renewables_potential_collection$find("{}"))
 
-hydro_potential_collection <- mongo(collection = "generationPotential-Hydro-red", db = "ES")
-hydro_potential <- as_tibble(hydro_potential_collection$find("{}"))
+# hydro_potential_collection <- mongo(collection = "generationPotential-Hydro-red", db = "ES")
+# hydro_potential <- as_tibble(hydro_potential_collection$find("{}"))
 
-solar_potential_collection <- mongo(collection = "generationPotential-Solar photovoltaic-red", db = "ES")
-solar_potential <- as_tibble(solar_potential_collection$find("{}"))
+# solar_potential_collection <- mongo(collection = "generationPotential-Solar photovoltaic-red", db = "ES")
+# solar_potential <- as_tibble(solar_potential_collection$find("{}"))
 
-# diesel and oil
-diesel_potential_collection <- mongo(collection = "generationPotential-Diesel engines-red", db = "ES")
-diesel_potential <- as_tibble(diesel_potential_collection$find("{}"))
+# # diesel and oil
+# diesel_potential_collection <- mongo(collection = "generationPotential-Diesel engines-red", db = "ES")
+# diesel_potential <- as_tibble(diesel_potential_collection$find("{}"))
 
-share_of_elec_by_source <- cbind(other_renewables_potential, hydro_potential, solar_potential, diesel_potential)
-names(share_of_elec_by_source) <- c(
-  "otherRenewables", "otherRenewablesPercentage", "otherRenewablesDatetime",
-  "hydro", "hydroPercentage", "hydroDatetime",
-  "solar", "solarPercentage", "solarDatetime",
-  "diesel", "dieselPercentage", "datetime"
-)
-share_of_elec_by_source <- select(share_of_elec_by_source, -otherRenewablesDatetime, -hydroDatetime, -solarDatetime) %>%
-  mutate(datetime = ymd_hms(datetime), date = date(datetime))
+# share_of_elec_by_source <- cbind(other_renewables_potential, hydro_potential, solar_potential, diesel_potential)
+# names(share_of_elec_by_source) <- c(
+#   "otherRenewables", "otherRenewablesPercentage", "otherRenewablesDatetime",
+#   "hydro", "hydroPercentage", "hydroDatetime",
+#   "solar", "solarPercentage", "solarDatetime",
+#   "diesel", "dieselPercentage", "datetime"
+# )
 
-glimpse(share_of_elec_by_source)
+# share_of_elec_by_source <- select(share_of_elec_by_source, -otherRenewablesDatetime, -hydroDatetime, -solarDatetime) %>%
+#   mutate(datetime = ymd_hms(datetime), date = date(datetime))
 
-kable(summary(share_of_elec_by_source))
+# --- Eurostat data ---
+# share_of_renewable_collection <- mongo(collection = "shareOfRenewableEnergy", db = "cda2")
+# share_of_renewable <- as_tibble(share_of_renewable_collection$find(query = "{}"))
+# share_of_renewable <- share_of_renewable[share_of_renewable$country_code == selected_country, ]$data[[1]]
+# share_of_renewable <- share_of_renewable[2, ]$data[[1]]
+# glimpse(share_of_renewable)
+# share_of_renewable %<>% mutate(date = as.numeric(date))
+# glimpse(share_of_renewable)
+# kable(summary(share_of_renewable))
 ```
 
 ### Grafische Übersicht
 ```{r plot-SOES}
+ggplot(generation_potential_data, aes(date, value, fill = source)) +
+  geom_area()
+
+ggplot(generation_potential_data, aes(date, percentage, fill = source)) +
+  geom_area()
+
+ggplot(total_generation_potential, aes(date, value)) +
+  geom_line()
+
+ggplot(generation_potential_per_type, aes(date, total_percentage, color = type)) +
+  geom_line() +
+  ylim(0, 1)
 # shareOfElecBySource_long <- shareOfElecBySource %>% pivot_longer(Coal:Other.renewables, names_to="Source", values_to="Percent")
 
 # p <- ggplot(shareOfElecBySource_long, aes(x = Year, y = Percent, color = Source)) +
@@ -132,100 +177,140 @@ kable(summary(share_of_elec_by_source))
 #   geom_line(aes(x = datetime, y = hydro))
 
 # ggplotly(p)
+# --- eurostat plot ---
+# p <- ggplot(share_of_renewable) +
+#   geom_line(aes(date, value)) +
+#   ylim(0, 100) +
+#   ggtitle("Share of renewable Energy")
+
+# ggplotly(p)
 ```
 
 ## Electricity prices
 
 ```{r read-EP, warning=FALSE}
-elec_prices_collection <- mongo(collection = "electricityPrice-Daily market-red", db = "ES")
-elec_prices <- as_tibble(elec_prices_collection$find("{}"))
+elec_prices_collection <- mongo(collection = "consumerPrices", db = "cda2")
+elec_prices <- as_tibble(elec_prices_collection$find('{"comment":"ree data"}'))
 
-# elecPrices <- as_tibble(read.csv("./dataSets/Electricity_prices_spain.csv") %>%
-#  filter(TAX == "All taxes and levies included", CURRENCY == "Euro")) #source: https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=nrg_pc_204
+elec_prices_data <- elec_prices$data[[1]]
 
-glimpse(elec_prices)
+elec_prices_data <- flattenTable(elec_prices_data)
 
-elec_prices <- mutate(elec_prices, datetime = ymd_hms(datetime), date = date(datetime))
+glimpse(elec_prices_data)
 
-glimpse(elec_prices)
+kable(summary(elec_prices_data)) # Prices in EUR
 
-kable(summary(elec_prices)) # Prices in EUR
+total_price <- filter(elec_prices_data, source == "distinct")
+# elec_prices_data %<>% filter(source != "distinct")
 ```
 
 ### Grafische Übersicht
 ```{r plot-EP}
-p <- ggplot(elec_prices, aes(datetime, value)) +
-  geom_line() +
+p <- ggplot(elec_prices_data, aes(datetime, value, fill = source)) +
+  geom_area() +
   ggtitle("Electricity price in Spain")
+
+ggplotly(p)
+
+p <- ggplot(total_price, aes(datetime, value)) +
+  geom_line() +
+  ggtitle("Total electricity price in Spain")
 
 ggplotly(p)
 ```
 
 ## Energy Generation
 ```{r read-EG}
-energy_generation_diesel_collection <- mongo(collection = "energyGeneration-Diesel engines-red", db = "ES")
-energy_generation_diesel <- as_tibble(energy_generation_diesel_collection$find("{}"))
+energy_generation_collection <- mongo(collection = "energyGeneration", db = "cda2")
+energy_generation <- as_tibble(energy_generation_collection$find('{"comment":"ree data"}'))
+energy_generation_data <- energy_generation$data[[1]]
 
-energy_generation_collection <- mongo(collection = "energyGeneration-Total generation-red", db = "ES")
-energy_generation <- as_tibble(energy_generation_collection$find("{}"))
-# energyGeneration <- as_tibble(read.csv("./dataSets/Spain/energyGeneration/Total generation-energyGeneration.csv")) #https://www.ree.es/en/apidatos
+generation_data <- flattenTable(energy_generation_data)
 
-glimpse(energy_generation_diesel)
+# generation_data <- data.frame()
+# for (i in seq_len(nrow(energy_generation_data) - 1)) {
+#   label_data <- energy_generation_data[i, ]$data[[1]]
+#   label_data %<>% mutate(datetime = ymd_hms(date), year = year(date), date = date(date), source = energy_generation_data[i, ]$label, type = energy_generation_data[i, ]$attributes_type)
+#   generation_data <- rbind(generation_data, label_data)
+# }
+# generation_data %<>% arrange(date)
 
-energy_generation_diesel <- energy_generation_diesel %>%
-  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
-  select(-datetime)
-energy_generation <- energy_generation %>%
-  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
-  select(-datetime)
-glimpse(energy_generation_diesel)
+total_generation <- filter(generation_data, source == "Total generation")
+# generation_data %<>% filter(source != "Total generation")
+glimpse(generation_data)
+
+# energy_generation_collection <- mongo(collection = "energyGeneration-Total generation-red", db = "ES")
+# energy_generation <- as_tibble(energy_generation_collection$find("{}"))
+
+# glimpse(energy_generation_diesel)
+
+# energy_generation_diesel <- energy_generation_diesel %>%
+#   mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
+#   select(-datetime)
+# energy_generation <- energy_generation %>%
+#   mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
+#   select(-datetime)
+# glimpse(energy_generation_diesel)
 
 
-kable(summary(energy_generation_diesel))
+# kable(summary(energy_generation_diesel))
 
 ## Eurostat data
-energy_generation_collection_eurostat <- mongo(collection = "energyGeneration", db = "AT")
-energy_generation_eurostat <- energy_generation_collection_eurostat$find("{}")
-energy_generation_eurostat <- subset(energy_generation_eurostat, code == "O4000XBIO")$data
-energy_generation_eurostat <- as.data.frame(energy_generation_eurostat) %>% mutate(Date = ymd(Date))
+# energy_generation_collection_eurostat <- mongo(collection = "energyGeneration", db = "AT")
+# energy_generation_eurostat <- energy_generation_collection_eurostat$find("{}")
+# energy_generation_eurostat <- subset(energy_generation_eurostat, code == "O4000XBIO")$data
+# energy_generation_eurostat <- as.data.frame(energy_generation_eurostat) %>% mutate(Date = ymd(Date))
 ```
 
 ### Grafische Übersicht
 ```{r plot-EG}
-p <- ggplot(energy_generation_diesel) +
-  geom_line(aes(date, value)) +
-  labs(y = "Energy Production", title = "Spain\'s Electricity production from Diesel")
-ggplotly(p)
+# p <- ggplot(energy_generation_diesel) +
+#   geom_line(aes(date, value)) +
+#   labs(y = "Energy Production", title = "Spain\'s Electricity production from Diesel")
+# ggplotly(p)
 
-p <- ggplot(energy_generation_diesel) +
-  geom_line(aes(date, percentage)) +
-  labs(y = "Energy Production", title = "Spain\'s Electricity production percentage from Diesel")
-ggplotly(p)
+# p <- ggplot(energy_generation_diesel) +
+#   geom_line(aes(date, percentage)) +
+#   labs(y = "Energy Production", title = "Spain\'s Electricity production percentage from Diesel")
+# ggplotly(p)
 
-p <- ggplot(energy_generation) +
-  geom_line(aes(date, value)) +
-  labs(y = "Energy Production", title = "Spain\'s total Electricity production")
-ggplotly(p)
+# p <- ggplot(energy_generation) +
+#   geom_line(aes(date, value)) +
+#   labs(y = "Energy Production", title = "Spain\'s total Electricity production")
+# ggplotly(p)
+
+ggplot(generation_data, aes(date, value, fill = source)) +
+  geom_area()
+
+ggplot(total_generation, aes(date, value)) +
+  geom_line()
+
+generation_data_per_type <- group_by(generation_data, date, type) %>%
+  summarise(total_percentage = sum(percentage))
+
+ggplot(generation_data_per_type, aes(date, total_percentage, color = type)) +
+  geom_line() +
+  ylim(0, 1)
 ```
 
 ## Emissions
 ```{r emissions}
-emissions_diesel_collection <- mongo(collection = "emissions-Diesel engines-red", db = "ES")
-emissions_diesel <- as_tibble(emissions_diesel_collection$find("{}"))
+emission_collection <- mongo(collection = "emissions", db = "cda2")
+emissions <- as_tibble(emission_collection$find('{"comment":"ree data"}'))
+emissions <- emissions[1, ]$data[[1]]
 
-glimpse(emissions_diesel)
-emissions_diesel <- emissions_diesel %>%
-  mutate(datetime = ymd_hms(datetime), date = date(datetime)) %>%
-  select(-datetime)
-glimpse(emissions_diesel) # tCO2 eq./MWh
+emissions_data <- flattenTable(emissions)
+total_emissions <- filter(emissions_data, source == "Total tCO2 eq." | source == "tCO2 eq./MWh")
+# emissions_data %<>% filter(source != "Total tCO2 eq." & source != "tCO2 eq./MWh")
+
+glimpse(emissions_data)
 ```
 
 ### Grafische Übersicht
 ```{r plot-emissions}
-p <- ggplot(emissions_diesel, aes(date, value)) +
-  geom_line() +
-  labs(y = "Emissions in ?", title = "Spain\'s diesel energy production emissions")
-ggplotly(p)
+ggplot(emissions_data, aes(date, value, fill = source)) +
+  geom_area()
+# ggplotly(p)
 ```
 
 
@@ -237,97 +322,158 @@ ggplotly(p)
 
 ```{r}
 # ---- data prep ----
-data <- oil_price %>%
-  filter(Year >= 2011) %>%
-  select(-Year)
-glimpse(data)
-tail(data)
-energy_generation_diesel <- energy_generation_diesel %>%
-  filter(date %in% data$Date) %>%
-  mutate(GeneratedEnergy = value) %>%
-  select(-percentage, -date, -value)
-dim(data)
-dim(energy_generation_diesel)
+emissions_wide <- emissions_data %>% select(-datetime, -type) %>% pivot_wider(names_from = source, values_from = c(value, percentage)) # Daily
+generation_wide <- generation_data %>% filter(type == "No-Renovable") %>% select(-type, -year, -datetime) %>% pivot_wider(names_from = source, values_from = c(value, percentage)) # Daily
+generation_potential_wide <- generation_potential_data %>% select(-type) %>% pivot_wider(names_from = source, values_from = c(value, percentage)) # Monthly
+elec_prices_wide <- elec_prices_data %>% select(-type) %>% pivot_wider(names_from = source, values_from = c(value, percentage)) # Monthly
+colnames(emissions_wide) <- make.names(colnames(emissions_wide), unique = TRUE)
+colnames(generation_wide) <- make.names(colnames(generation_wide), unique = TRUE)
+colnames(generation_potential_wide) <- make.names(colnames(generation_potential_wide), unique = TRUE)
+colnames(elec_prices_wide) <- make.names(colnames(elec_prices_wide), unique = TRUE)
 
-emissions_diesel <- emissions_diesel %>%
-  mutate(emissions = value) %>%
-  select(-value) %>%
-  filter(date %in% data$Date)
+data <- merge(emissions_wide, oil_price, by.x = "date", by.y = "Date", all.x = TRUE) %>%
+  mutate(Price = as.numeric(na_locf(ts(Price)))) %>%
+  select(-Year, -date, -year)
+  # merge(generation_wide, by.x = "date", by.y = "date", all.x = TRUE, suffixes = c(".emissions", ".generation"))
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+ggpairs(data)
 
-dim(emissions_diesel)
+emissions_fuel_gas <- emissions_data %>% filter(source == "Fuel + Gas") # Nur sehr wenige Einträge
+emissions_cogeneration_2011 <- emissions_data %>% filter(source == "Cogeneration" & year == 2012)
 
-data <- data %>% cbind(energy_generation_diesel, emissions_diesel)
-glimpse(data)
-data$day <- weekdays(data$date)
-glimpse(data)
-
-
-# --- data prep eurostat ---
-oil_price$month <- months(oil_price$Date)
-oil_price$year <- year(oil_price$Date)
-energy_generation_eurostat$month <- months(energy_generation_eurostat$Date)
-energy_generation_eurostat$year <- year(energy_generation_eurostat$Date)
-
-oil_price_monthly <- aggregate(Price ~ month + year, oil_price, sum)
-
-data_eurostat <- energy_generation_eurostat %>% merge(oil_price_monthly, by = c("Year", "Month"))
-# ---- analysis ----
-# hist(data$Price)
-# hist(data$emissions)
-# shapiro.test(data$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
-# shapiro.test(data$emissions)
-
-p <- ggplot(data, aes(Price, GeneratedEnergy, color = year(date))) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between emissions and the Brent Oil Price Years 2010+")
+emissions_cogeneration_w_season <- emissions_cogeneration_2011 %>%
+  mutate(index = 1:nrow(emissions_cogeneration_2011), weekday = weekdays(date)) %>%
+  mutate(season = predict(
+    loess(value ~ index, data = emissions_cogeneration_2011, span = 0.9)
+  ))
+# ggplot(emissions_cogeneration_w_season) +
+#     geom_line(mapping = aes(x = date, y = season), color = "#D9230F") +
+#     labs(
+#       title = "Saisonalität",
+#       x = "Zeit",
+#       y = "produzierte Energie [MWh]"
+#     )
+p <- ggplot(emissions_cogeneration_2011, aes(date, value)) +
+  geom_line() +
+  geom_smooth(aes(x = date, y = value, color = "Price smoothed"), method = "loess", span = 0.5, )
 ggplotly(p)
+ccf(data$Price, data$Diesel.engines.emissions, ylab = "CCF", main = " ")
 
-p <- ggplot(data_eurostat, aes(Price, Value, color = Date)) +
+model_w_season <- lm(value ~ season, emissions_cogeneration_w_season)
+emissions_cogeneration_w_season %<>%
+  mutate(noise = model_w_season$residuals)
+
+components_order <- c("value", "season", "noise")
+ggplot(emissions_cogeneration_w_season %>% pivot_longer(c(value, season, noise))) +
+  geom_line(mapping = aes(x = date, y = value)) +
+  facet_wrap(~ factor(name, levels = components_order), ncol = 1, scales = "free_y") +
+  labs(
+    title = "Zerlegung Energieproduktion",
+    x = "Zeit",
+    y = "produzierte Energie [kWh]"
+  )
+
+lm <- lm(Diesel.engines.emissions ~ Price, data = data)
+
+summary(lm)
+
+p <- ggplot(data, aes(Price, Diesel.engines.emissions, color = date)) +
   geom_point() +
   geom_smooth(method = "lm") +
   labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between energy generation and the Brent Oil Price Years 2010+")
 ggplotly(p)
 
-lm <- lm(emissions ~ Price, data = data)
+# data <- oil_price %>%
+#   filter(Year >= 2011) %>%
+#   select(-Year)
+# glimpse(data)
+# tail(data)
+# energy_generation_diesel <- energy_generation_diesel %>%
+#   filter(date %in% data$Date) %>%
+#   mutate(GeneratedEnergy = value) %>%
+#   select(-percentage, -date, -value)
+# dim(data)
+# dim(energy_generation_diesel)
 
-summary(lm)
+# emissions_diesel <- emissions_diesel %>%
+#   mutate(emissions = value) %>%
+#   select(-value) %>%
+#   filter(date %in% data$Date)
 
-p1 <- ggplot(data) +
-  geom_line(aes(x = date, y = scale(Price), color = "Price")) +
-  geom_smooth(aes(x = date, y = scale(Price), color = "Price smoothed"), method = "loess", span = 0.1, ) +
-  geom_smooth(aes(x = date, y = scale(emissions), color = "Emissions smoothed"), method = "loess", span = 0.1, ) +
-  geom_line(aes(x = date, y = scale(emissions), color = "Emissions", alpha = .5))
+# dim(emissions_diesel)
 
-ggplotly(p1)
-
-for (m in unique(year(data$date))) {
-  yearly_data <- filter(data, year(date) == m)
-
-  hist(yearly_data$Price)
-  hist(yearly_data$GeneratedEnergy)
-  shapiro.test(yearly_data$Price) # Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
-  shapiro.test(yearly_data$GeneratedEnergy)
+# data <- data %>% cbind(energy_generation_diesel, emissions_diesel)
+# glimpse(data)
+# data$day <- weekdays(data$date)
+# glimpse(data)
 
 
+# # --- data prep eurostat ---
+# oil_price$month <- months(oil_price$Date)
+# oil_price$year <- year(oil_price$Date)
+# energy_generation_eurostat$month <- months(energy_generation_eurostat$Date)
+# energy_generation_eurostat$year <- year(energy_generation_eurostat$Date)
 
-  glimpse(yearly_data)
-  p2 <- ggplot(yearly_data, aes(Price, GeneratedEnergy, color = date)) +
-    geom_point() +
-    geom_smooth(method = "lm") +
-    labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = paste("Correlation between emissions and the Brent Oil Price Year", m))
-  print(p2)
+# oil_price_monthly <- aggregate(Price ~ month + year, oil_price, sum)
 
-  lm <- lm(GeneratedEnergy ~ Price, data = yearly_data)
-  res <- resid(lm)
+# data_eurostat <- energy_generation_eurostat %>% merge(oil_price_monthly, by = c("Year", "Month"))
+# # ---- analysis ----
+# # hist(data$Price)
+# # hist(data$emissions)
+# # shapiro.test(data$Price) #Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
+# # shapiro.test(data$emissions)
 
-  plot(fitted(lm), res)
+# p <- ggplot(data, aes(Price, GeneratedEnergy, color = year(date))) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between emissions and the Brent Oil Price Years 2010+")
+# ggplotly(p)
 
-  # add a horizontal line at 0
-  abline(0, 0)
+# p <- ggplot(data_eurostat, aes(Price, Value, color = Date)) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = "Correlation between energy generation and the Brent Oil Price Years 2010+")
+# ggplotly(p)
 
-  print(summary(lm))
-}
+# lm <- lm(emissions ~ Price, data = data)
+
+# summary(lm)
+
+# p1 <- ggplot(data) +
+#   geom_line(aes(x = date, y = scale(Price), color = "Price")) +
+#   geom_smooth(aes(x = date, y = scale(Price), color = "Price smoothed"), method = "loess", span = 0.1, ) +
+#   geom_smooth(aes(x = date, y = scale(emissions), color = "Emissions smoothed"), method = "loess", span = 0.1, ) +
+#   geom_line(aes(x = date, y = scale(emissions), color = "Emissions", alpha = .5))
+
+# ggplotly(p1)
+
+# for (m in unique(year(data$date))) {
+#   yearly_data <- filter(data, year(date) == m)
+
+#   hist(yearly_data$Price)
+#   hist(yearly_data$GeneratedEnergy)
+#   shapiro.test(yearly_data$Price) # Test for normality -> p > .05 is ok -> not ok, we've got a bimodal distribution
+#   shapiro.test(yearly_data$GeneratedEnergy)
+
+
+
+#   glimpse(yearly_data)
+#   p2 <- ggplot(yearly_data, aes(Price, GeneratedEnergy, color = date)) +
+#     geom_point() +
+#     geom_smooth(method = "lm") +
+#     labs(y = "Emissions in ?", x = "Brent Oil Price (USD)", title = paste("Correlation between emissions and the Brent Oil Price Year", m))
+#   print(p2)
+
+#   lm <- lm(GeneratedEnergy ~ Price, data = yearly_data)
+#   res <- resid(lm)
+
+#   plot(fitted(lm), res)
+
+#   # add a horizontal line at 0
+#   abline(0, 0)
+
+#   print(summary(lm))
+# }
 
 # just the year 2019
 # data2019 <- filter(data, year(date) == 2019)

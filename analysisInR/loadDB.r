@@ -6,7 +6,7 @@ library(httr) # for http requests (to get data)
 library(jsonlite) # to deal with json
 library(mongolite) # to connect to mongodb
 library(magrittr)
-# library(cbsodataR) # Netherland Dat
+# library(cbsodataR) # Netherland Data
 
 # --- Function to retreive data from API ---
 callApi <- function(url) {
@@ -27,7 +27,7 @@ callApi <- function(url) {
   }
 }
 
-prepEurostatData <- function(url, code, label, prec) { # ToDo: add unit to data
+prepEurostatData <- function(url, code, label, prec, flat = FALSE) { # ToDo: add unit to data
   api_data <- callApi(url)
   if (length(api_data$value) > 0) {
     values <- data.frame(names(api_data$value), unlist(unname(api_data$value)))
@@ -42,10 +42,16 @@ prepEurostatData <- function(url, code, label, prec) { # ToDo: add unit to data
       )) %>%
       select(-index, -month)
     consolidated_data <- drop_na(consolidated_data)
-    row <- data.frame(code = code, label = label)
-    row_json <- toJSON(row)
-    row$data <- list(consolidated_data)
-    return(row)
+    if (flat == FALSE) {
+      row <- data.frame(code = code, label = label)
+      row_json <- toJSON(row)
+      row$data <- list(consolidated_data)
+      return(row)
+    } else {
+       consolidated_data$code <- code
+       consolidated_data$label <- label
+       return(consolidated_data)
+    }
   }
 }
 
@@ -62,7 +68,7 @@ getAndWriteEurostatData <- function(codes, labels, second_codes = NULL, second_l
     if (collection == "energyGeneration" || collection == "shareOfRenewableEnergy" || collection == "industryPrices" || collection == "consumerPrices") {
       for (i_code in list$code) {
         url <- paste(base_url, url_part_one, i_code, "&sinceTimePeriod=", since_period, "&precision=1&geo=", country_code, "&unitLabel=label", sep = "")
-        country_data <- rbind(country_data, prepEurostatData(url, i_code, list[list$code == i_code, ]$label, precision))
+          country_data <- rbind(country_data, prepEurostatData(url, i_code, list[list$code == i_code, ]$label, precision, flat = FALSE))
       }
     } else if (collection == "emissions" || collection == "installedCapacity") {
       for (i_code in list$code) {
@@ -83,6 +89,39 @@ getAndWriteEurostatData <- function(codes, labels, second_codes = NULL, second_l
   }
   db_collection <- mongo(collection = collection, db = "cda2")
   db_collection$insert(data)
+}
+
+getAndWriteFlatEurostatData <- function(codes, labels, second_code = NULL, second_label = NULL, collection, url_part_one, url_part_two = NULL, since_period, precision, comment = "no comment") {
+  list <- data.frame(code = codes, label = labels)
+  flat_data <- data.frame()
+  for (country_code in country_list$country_code) {
+    flat_country_data <- data.frame()
+    for (i_code in list$code) {
+      if (!is.null(second_code)) {
+        url <- paste(base_url, url_part_one, i_code, "&sinceTimePeriod=", since_period, "&precision=1&", url_part_two, second_code, "&geo=", country_code, "&unitLabel=label", sep = "")
+      } else{
+        url <- paste(base_url, url_part_one, i_code, "&sinceTimePeriod=", since_period, "&precision=1&geo=", country_code, "&unitLabel=label", sep = "")
+      }
+      flat_country_data <- rbind(flat_country_data, prepEurostatData(url, i_code, list[list$code == i_code, ]$label, precision, flat = TRUE))
+    }
+    flat_row <- data.frame(country_code, country_name = country_list[country_list$country_code == country_code, ]$country, comment = comment)
+    flat_country_data %<>% select(-code) %>% pivot_wider(names_from = label, values_from = value)
+    flat_country_data[is.na(flat_country_data)] <- 0
+    if (collection == "energyGeneration2019" | collection == "energyGeneration" | collection == "installedCapacity") {
+      for (colname in colnames(flat_country_data)[2:length(colnames(flat_country_data))]) {
+        temp_name <- paste(colname, "percentage")
+          flat_country_data[, temp_name] <- flat_country_data[, colname] / flat_country_data[, "Total"]
+      }
+      if (collection == "energyGeneration2019") {
+        flat_country_data %<>% filter(year(date) == 2019)
+
+      }
+    }
+    flat_row$data <- list(flat_country_data)
+    flat_data <- rbind(flat_data, flat_row)
+  }
+  flat_collection <- mongo(collection = paste("flat", collection, sep = ""), db = "cda2")
+  flat_collection$insert(flat_data)
 }
 
 prepReeData <- function(data, new_data) {
@@ -121,107 +160,18 @@ collectReeData <- function(years, url, trunc, collection) {
   db_collection$insert(row)
 }
 
-# # --- get Data from polish API ---
-# get_data_pl <- function(label_url, url, data_type) {
-#   labels <- call_api(label_url)$results
-#   api_data <- call_api(url)$results
-#   labels <- arrange(labels, id)
-#   api_data <- api_data %>%
-#     mutate(type = labels[labels$id == id, ]$n1, measureUnit = labels[labels$id == id, ]$measureUnitName) %>%
-#     select(-measureUnitId)
-#   for (id in api_data$id) {
-#     data_per_label <- api_data[api_data$id == id, ]$values[[1]]
-#     collection <- mongo(collection = paste(data_type, api_data[api_data$id == id, ]$type, sep = "-"), db = "Poland")
-#     collection$insert(data_per_label)
-#   }
-# }
-
-# # --- Netherland data ---
-# ## --- generation ---
-# generation_data_nl <- cbs_get_data("84575ENG") # Energy Production: https://www.cbs.nl/en-gb/figures/detail/84575ENG?q=electricity
-# generation_data_nl <- cbs_add_label_columns(generation_data_nl) %>% select(-Periods)
-# energy_collection_nl <- mongo(collection = "energyGeneration", db = "Netherlands")
-# energy_collection_nl$insert(energy_data_nL)
-
-# ## --- emissions ---
-# emission_data_nl <- cbs_get_data("37221eng") # Emission Data: https://www.cbs.nl/en-gb/figures/detail/37221eng?q=electricity%20emission Source 346700 = Energy supply
-# emission_data_nl <- emission_data_nl %>% filter(Sources == "346700   ") # Filter for emissions by energy production
-# emission_data_nl <- cbs_add_label_columns(emission_data_nl) %>% select(-Periods, -Sources, -Sources_label)
-# emissions_collection_nl <- mongo(collection = "emissions", db = "Netherlands")
-# emissions_collection_nl$insert(emission_data_nl)
-
-# ## --- generation potential ---
-# generation_potential_nl <- cbs_get_data("82610ENG")
-# generation_potential_nl <- cbs_add_label_columns(generation_potential_nl) %>% select(-EnergySourcesTechniques, -Periods)
-# potential_collecton_nl <- mongo(collection = "generationPotential", db = "Netherlands")
-# potential_collecton_nl$insert(generation_potential_nl)
-
-# ## --- electricity Prices (average energy prices for consumers) ---
-# electricity_prices_nl <- cbs_get_data("84672ENG") # https://www.cbs.nl/en-gb/figures/detail/84672ENG?q=%22average%20energy%20prices%22
-# electricity_prices_nl <- cbs_add_label_columns(electricity_prices_nl) %>% select(-VAT, -Period)
-# prices_collection_nl <- mongo(collection = "electricityPrices", db = "Netherlands")
-# prices_collection_nl$insert(electricity_prices_nl)
-
-# --- Poland data ---
-# provided by state api
-
-# ## --- generation ---
-# label_url <- "https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1674&lang=en"
-# url <- "https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999
-#   &year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008
-#   &year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017
-#   &year=2018&year=2019&year=2020&year=2021&year=2022&var-id=7883&var-id=76361&var-id=7884
-#   &var-id=79238&var-id=7885&var-id=7936&var-id=194886&var-id=288086&var-id=454054"
-
-# # get_data_pl(labelUrl, url, "energyGeneration")
-# labels <- call_api(label_url)$results
-# api_data <- call_api(url)$results
-# labels <- arrange(labels, id)
-# api_data <- api_data %>%
-#   mutate(type = labels[labels$id == id, ]$n1, measureUnit = labels[labels$id == id, ]$measureUnitName) %>%
-#   select(-measureUnitId)
-# for (id in api_data$id) {
-#   data_per_label <- api_data[api_data$id == id, ]$values[[1]]
-#   collection <- mongo(collection = paste("energyGeneration", api_data[api_data$id == id, ]$type, sep = "-"), db = "Poland")
-#   collection$insert(data_per_label)
-# }
-
-# ## --- emissions ---
-
-
-# ## --- generation potential ---
-# label_url <- "https://bdl.stat.gov.pl/api/v1/Variables?subject-id=P1672&lang=en"
-# url <- "https://bdl.stat.gov.pl/api/v1/data/by-unit/000000000000?format=json&lang=en&year=1995&year=1996&year=1997&year=1998&year=1999
-#   &year=2000&year=2001&year=2002&year=2003&year=2004&year=2005&year=2006&year=2007&year=2008
-#   &year=2009&year=2010&year=2011&year=2012&year=2013&year=2014&year=2015&year=2016&year=2017
-#   &year=2018&year=2019&year=2020&year=2021&year=2022&var-id=4834&var-id=79240&var-id=79242
-#   &var-id=4835&var-id=4836&var-id=4837&var-id=4838&var-id=4839&var-id=4840&var-id=76364"
-
-# # get_data_pl(labelUrl, url, "generationPotential")
-# labels <- call_api(label_url)$results
-# api_data <- call_api(url)$results
-# labels <- arrange(labels, id)
-# api_data <- api_data %>%
-#   mutate(type = labels[labels$id == id, ]$n2, measureUnit = labels[labels$id == id, ]$measureUnitName) %>%
-#   select(-measureUnitId)
-# for (id in api_data$id) {
-#   data_per_label <- api_data[api_data$id == id, ]$values[[1]]
-#   collection <- mongo(collection = paste("generationPotential", api_data[api_data$id == id, ]$type, sep = "-"), db = "Poland")
-#   collection$insert(data_per_label)
-# }
-
 # --- ree data (detailed data from Spain) ----
 ## --- generation ---
-collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/generacion/estructura-generacion", "day", "energyGeneration") # available since 2011
+# collectReeData(2011:2022, "https://apidatos.ree.es/en/datos/generacion/estructura-generacion", "day", "energyGeneration") # available since 2011
 
-## --- emissions ---
-collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2", "day", "emissions") # available since 2011
+# ## --- emissions ---
+# collectReeData(2011:2022, "https://apidatos.ree.es/en/datos/generacion/no-renovables-detalle-emisiones-CO2", "day", "emissions") # available since 2011
 
-## --- generation potential ---
-collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/generacion/potencia-instalada", "month", "installedCapacity") # available since 2015
+# ## --- generation potential ---
+# collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/generacion/potencia-instalada", "month", "installedCapacity") # available since 2015
 
-## --- electricity Prices ---
-collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/mercados/componentes-precio", "month", "consumerPrices") # available since 2014
+# ## --- electricity Prices ---
+# collectReeData(2015:2022, "https://apidatos.ree.es/en/datos/mercados/componentes-precio", "month", "consumerPrices") # available since 2014
 
 
 # --- Oil Price ---
@@ -240,6 +190,23 @@ oil_price_data <- oil_price_data %>% select(
 )
 oil_price_collection <- mongo(collection = "BrentOilPrice", db = "cda2")
 oil_price_collection$insert(oil_price_data)
+
+
+yearly_oil_price_df <- mutate(oil_price_data, year = year(period)) %>%
+  filter(year >= 1990 & year <= 2019) %>%
+  group_by(year) %>%
+  summarise(sum = sum(value), avg = sum / n())
+
+yearly_oil_price_collection <- mongo(collection = "yearlyBrentOilPrice", db = "cda2")
+yearly_oil_price_collection$insert(yearly_oil_price_df)
+
+emissions_europe <- read.csv("./datasets/ghg-emissions-by-sector.csv") %>%
+  filter(Entity == "European Union (27)") %>%
+  select(Year, Electricity.and.heat)
+
+emissions_europe_collection <- mongo(collection = "emissionsEurope", db = "cda2")
+emissions_europe_collection$insert(emissions_europe)
+
 
 # --- data from eurostat ---
 ## --- global variables ---
@@ -276,111 +243,171 @@ country_list <- data.frame(country_code, country)
 siec_codes <- c(
   "C0000",
   "CF",
-  "CF_NR",
-  "CR_R",
+  # "CF_NR",
+  # "CR_R",
   "G3000",
   "N9000",
   "O4000XBIO",
   "RA100",
-  "RA110",
-  "RA120",
-  "RA130",
+  # "RA110",
+  # "RA120",
+  # "RA130",
   "RA200",
-  "RA300",
+  # "RA300",
   "RA310",
   "RA320",
-  "RA400",
+  # "RA400",
   "RA410",
   "RA420",
   "RA500",
   "RA500_5160",
-  "TOTAL",
-  "X9900"
+  "X9900",
+  "TOTAL"
+
 )
 
 siec_labels <- c(
   "Coal and manufactured gases",
   "Combustible fuels",
-  "Combustible fuels - non-renewable",
-  "Combustible fuels - renewable",
+  # "Combustible fuels - non-renewable",
+  # "Combustible fuels - renewable",
   "Natural gas",
-  "Nuclear fuels and other",
+  "Nuclear fuels and other fuels n.e.c.",
   "Oil and petroleum products (exluding biofuel portion)",
   "Hydro",
-  "Pure Hydro power",
-  "Mixed hydro power",
-  "Pumped hydro power", ##
+  # "Pure Hydro power",
+  # "Mixed hydro power",
+  # "Pumped hydro power", ##
   "Geothermal",
-  "Wind",
+  # "Wind",
   "Wind on shore",
   "Wind off shore",
-  "Solar",
+  # "Solar",
   "Solar thermal",
   "Solar photovoltaic",
   "Tide, wave, ocean", ##
   "Other renewable energies",
-  "Total",
-  "Other fuels n.e.c."
+  "Other fuels n.e.c.",
+  "Total"
 )
 
 ## --- energy generation ---
-getAndWriteEurostatData(
+getAndWriteFlatEurostatData(
   codes = siec_codes,
   labels = siec_labels,
-  collection = "energyGeneration",
+  collection = "EnergyGeneration",
   url_part_one = "nrg_cb_pem?siec=",
   since_period = "2016M01&",
   precision = "month"
 )
 
+getAndWriteFlatEurostatData(
+  codes = siec_codes,
+  labels = siec_labels,
+  collection = "energyGeneration2019",
+  url_part_one = "nrg_cb_pem?siec=",
+  since_period = "2019M01&",
+  precision = "month"
+)
 
-## --- emissions ---
-getAndWriteEurostatData(
-  codes = c("CRF1", "CRF1A1", "CRF1A1A", "CRF1A1B", "CRF1A1C", "CRF1B2"),
+# ## --- emissions ---
+getAndWriteFlatEurostatData(
+  codes = c("CRF1A1A"), #, "CRF1A1B", "CRF1A1C", "CRF1B2", "CRF1", "CRF1A1"),
   labels = c(
-    "Energy", "Fuel combustion in energy industries", "Fuel combustion in public electricity and heat production",
-    "Fuel combustion in petroleum refining", "Fuel combustion in manufacture of solid fuels and other energy industries", "Oil, natural gas and other energy production - fugitive emissions"
+    "Fuel combustion in public electricity and heat production"
+#    "Energy", "Fuel combustion in energy industries", 
+#    "Fuel combustion in petroleum refining", "Fuel combustion in manufacture of solid fuels and other energy industries", "Oil, natural gas and other energy production - fugitive emissions"
   ),
-  second_codes = c("CH4", "CH4_CO2E", "CO2", "GHG", "HFC_CO2E", "HFC_PFC_NSP_CO2E", "N2O", "N2O_CO2E", "NF3_CO2E", "PFC_CO2E", "SF6_CO2E"),
-  second_labels = c(
-    "Methane", "Methane (CO2 eq.)", "Carbon dioxide", "Greenhouse gases (CO2, N2O in CO2 eq., CH4 in CO2 eq., HFC in CO2 eq., PFC in CO2 eq., SF6 in CO2 eq., NF3 in CO2 eq.",
-    "Hydrofluorocarbones (CO2 eq.)", "Hydrofluorocarbones and perfluorocarbones - nor specified mix (CO2 eq.)", "Nitrous oxide", "Nitrous oxide (CO2 eq.)", "Nitrogen trifluoride (CO2 eq.)",
-    "Perfluorocarbones (CO2 eq.)", "Sulphur hexafluoride (CO2 eq.)"
-  ),
-  collection = "emissions",
+  second_code = "GHG", #"CH4", "CH4_CO2E", "CO2", "HFC_CO2E", "HFC_PFC_NSP_CO2E", "N2O", "N2O_CO2E", "NF3_CO2E", "PFC_CO2E", "SF6_CO2E"),
+  second_label = "Greenhouse gases (CO2, N2O in CO2 eq., CH4 in CO2 eq., HFC in CO2 eq., PFC in CO2 eq., SF6 in CO2 eq., NF3 in CO2 eq.",# "Methane", "Methane (CO2 eq.)", "Carbon dioxide",
+    #"Hydrofluorocarbones (CO2 eq.)", "Hydrofluorocarbones and perfluorocarbones - not specified mix (CO2 eq.)", "Nitrous oxide", "Nitrous oxide (CO2 eq.)", "Nitrogen trifluoride (CO2 eq.)",
+    #"Perfluorocarbones (CO2 eq.)", "Sulphur hexafluoride (CO2 eq.)"
+  collection = "Emissions",
   url_part_one = "env_air_gge?src_crf=",
-  url_part_two = "&unit=MIO_T&airpol=",
+  url_part_two = "&unit=THS_T&airpol=",
   since_period = "1985",
   precision = "year"
 )
 
 
-## --- share of energy by renewables --- -> maybe not enough data
-getAndWriteEurostatData(
-  codes = c("REN", "REN_ELC", "REN_HEAD_CL", "REN_TRA"),
-  labels = c("Renewable energy sources", "Renewable energy sources in electricity", "Renewable energy sources in heating and cooling", "Renewable energy soruces in transport"),
-  collection = "shareOfRenewableEnergy",
-  url_part_one = "nrg_ind_ren?nrg_bal=",
-  since_period = "2004",
-  precision = "year"
-) # maybe problem
+# ## --- share of energy by renewables ---
+# getAndWriteFlatEurostatData(
+#   codes = c("REN_ELC"), #, "REN_HEAD_CL", "REN_TRA", "REN"),
+#   labels = c("Renewable energy sources in electricity"), # "Renewable energy sources", "Renewable energy sources in heating and cooling", "Renewable energy soruces in transport"),
+#   collection = "ShareOfRenewableEnergy",
+#   url_part_one = "nrg_ind_ren?nrg_bal=",
+#   since_period = "2004",
+#   precision = "year"
+# ) # maybe problem
+
+# siec_codes <- c(
+#   # "C0000",
+#   "CF",
+#   # "CF_NR",
+#   # "CR_R",
+#   # "G3000",
+#   "N9000",
+#   # "O4000XBIO",
+#   "RA100",
+#   # "RA110",
+#   # "RA120",
+#   # "RA130",
+#   "RA200",
+#   "RA300",
+#   # "RA310",
+#   # "RA320",
+#   # "RA400",
+#   "RA410",
+#   "RA420",
+#   "RA500",
+#   # "RA500_5160",
+#   "X9900",
+#   "TOTAL"
+
+# )
+
+# siec_labels <- c(
+#   # "Coal and manufactured gases",
+#   "Combustible fuels",
+#   # "Combustible fuels - non-renewable",
+#   # "Combustible fuels - renewable",
+#   # "Natural gas",
+#   "Nuclear fuels and other fuels n.e.c.",
+#   # "Oil and petroleum products (exluding biofuel portion)",
+#   "Hydro",
+#   # "Pure Hydro power",
+#   # "Mixed hydro power",
+#   # "Pumped hydro power", ##
+#   "Geothermal",
+#   "Wind",
+#   # "Wind on shore",
+#   # "Wind off shore",
+#   # "Solar",
+#   "Solar thermal",
+#   "Solar photovoltaic",
+#   "Tide, wave, ocean", ##
+#   # "Other renewable energies",
+#   "Other fuels n.e.c.",
+#   "Total"
+# )
+
+# ## --- installed capacity ---
+# getAndWriteFlatEurostatData(
+#   codes = siec_codes, # "PRR_AUTO"
+#   labels = siec_labels, # "Autoproducers"
+#   second_code = "PRR_MAIN",
+#   second_label = "Main activity producers",
+#   collection = "installedCapacity",
+#   url_part_one = "nrg_inf_epc?siec=",
+#   url_part_two = "&operator=",
+#   since_period = "1990",
+#   precision = "year"
+# )
 
 
-## --- installed capacity ---
-getAndWriteEurostatData(
-  codes = c("PRR_AUTO", "PRR_MAIN"),
-  labels = c("Autoproducers", "Main activity producers"),
-  second_codes = siec_codes,
-  second_labels = siec_labels,
-  collection = "installedCapacity",
-  url_part_one = "nrg_inf_epc?operator=",
-  url_part_two = "&siec=",
-  since_period = "1990",
-  precision = "year"
-)
 
-## --- Prices ---
-### --- Industry ---
+# ## --- Prices ---
+# ### --- Industry ---
 getAndWriteEurostatData(
   codes = c("4162050", "4162100", "4162150", "4162200", "4162250", "4162300", "4162350", "4162400", "4162450"),
   labels = c(
@@ -419,7 +446,7 @@ getAndWriteEurostatData(
   comment = "after 2007"
 )
 
-### --- Consumer ---
+# # ### --- Consumer ---
 getAndWriteEurostatData(
   codes = c("4161050", "4161100", "4161150", "4161200", "4161250"),
   labels = c(

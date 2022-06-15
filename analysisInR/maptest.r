@@ -10,6 +10,17 @@ library(shinycssloaders)
 library(mongolite) # to connect to mongodb
 library(plotly)
 
+flattenTable <- function(input_data) {
+  flat_data <- data.frame()
+  for (i in seq_len(nrow(input_data))) {
+    label_data <- input_data[i, ]$data[[1]]
+    label_data %<>% mutate(datetime = ymd_hms(date), year = year(date), date = date(date), source = input_data[i, ]$label, type = input_data[i, ]$attributes_type)
+    flat_data <- rbind(flat_data, label_data)
+  }
+  flat_data %<>% arrange(date)
+  return(flat_data)
+}
+
 # source: https://geocompr.robinlovelace.net/adv-map.html#interactive-maps
 
 # fix for clicking stuff: https://community.rstudio.com/t/shiny-using-multiple-exclusive-reactivevalues-for-filtering-dataset/40957/6
@@ -69,10 +80,12 @@ ui <- fluidPage(
   br(), br(),
   fluidRow(
     plotlyOutput("generation") %>% withSpinner(color = "#0dc5c1")
-      # tabsetPanel(
-      #   uiOutput("year_panels")
-      # )
-    # column(9, div(DT::dataTableOutput("od_vol"), width = "100%", style = "font-size:100%"))
+  ),
+  fluidRow(
+    plotlyOutput("linear_model")
+  ),
+  fluidRow(
+    plotlyOutput("scenario")
   )
   # fluidRow(
   #   column(5, plotlyOutput("od_ton_chart", width = "100%", height = "350px") %>% withSpinner(color = "#0dc5c1")),
@@ -165,6 +178,64 @@ server <- function(input, output, session) {
     #       <br>",
     #   sep = ""
     # )
+  })
+
+  output$linear_model <- renderPlotly({
+    # seit 1990
+    # selected_country$code <- "EL"
+    p <- input$map_shape_click
+    selected_country <- country_list[country_list$code == p$id, ]
+    if (selected_country$code == "ES") {
+      emission_collection <- mongo(collection = "emissions", db = "cda2")
+      emissions <- as_tibble(emission_collection$find('{"comment":"ree data"}'))
+      emissions <- emissions[1, ]$data[[1]]
+
+      emissions_data <- flattenTable(emissions)
+      total_emissions <- filter(emissions_data, source == "Total tCO2 eq.") %>%
+        select(-datetime, -source, -type, -percentage)
+      correlation_data <- merge(total_emissions, oil_price, by.x = "date", by.y = "Date", all.x = TRUE) %>%
+        mutate(Price = as.numeric(na_locf(ts(Price)))) %>%
+        select(-Year, -date, -year)
+    }
+    else {
+      emission_collection <- mongo(collection = "emissions", db = "cda2")
+      emissions <- as_tibble(emission_collection$find(paste('{"country_code":', '"', selected_country$code, '"', ', "comment":"no comment"}', sep = "")))
+      emissions <- emissions$data[[1]]
+      energy_emissions <- emissions[1, ]$data[[1]]
+      energy_emissions <- energy_emissions[4, ]$data[[1]]
+      energy_emissions$value <- energy_emissions$value * 1000 # thousand tonnes CO2 eq.
+
+      oil_price_yearly <- oil_price %>% group_by(Year) %>%
+        summarise(Price = sum(Price))
+
+      correlation_data <- merge(energy_emissions, oil_price_yearly, by.x = "date", by.y = "Year")
+    }
+    p <- ggplot(correlation_data, aes(Price, value)) +
+      geom_point() +
+      geom_smooth(method = "lm") +
+      labs(y = "CO2 emissions in thousand tonnes", x = "Brent Oil Price (USD)", title = "Correlation between energy generation and the Brent Oil Price Years 2010+")
+    ggplotly(p)
+  })
+
+  output$scenario <- renderPlotly({
+    selected_country$code <- "EL"
+    p <- input$map_shape_click
+    selected_country <- country_list[country_list$code == p$id, ]
+    consumer_price_collection <- mongo(collection = "consumerPrices", db = "cda2")
+    consumer_price <- as_tibble(consumer_price_collection$find(paste('{"country_code":', '"', selected_country$code, '"', ', "comment":"after 2007"}', sep = "")))
+    consumer_price <- consumer_price$data[[1]]
+    flat_table <- data.frame()
+    for (i in seq_len(nrow(consumer_price))) {
+      label_data <- consumer_price[i, ]$data[[1]] %>%
+        mutate(label = consumer_price[i, ]$label)
+      flat_table <- rbind(flat_table, label_data)
+    }
+    flat_table %<>% arrange(date) %>%
+      mutate(date = yq(date))
+
+    p <- ggplot(flat_table, aes(date, value, fill = label)) +
+      geom_area()
+    ggplotly(p)
   })
 
   output$year_panels <- renderUI({
