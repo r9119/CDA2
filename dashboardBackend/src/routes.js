@@ -8,15 +8,21 @@ module.exports = (app) => {
     app.get('/index-oil-price',
     dashboardController.indexOilPrice)
 
-    app.get('/index-elec-price',
-    dashboardController.indexElecPrices)
+    app.get('/index-elec-price-consumer',
+    dashboardController.indexConsumerElecPrices)
 
-    app.get('/index-enery-gen',
+    app.get('/index-elec-price-industry',
+    dashboardController.indexIndustryElecPrices)
+
+    app.get('/index-energy-gen',
     dashboardController.indexEneryGen)
 
     app.get('/index-emissions',
     dashboardController.indexEmissions)
 
-    app.get('/index-share-of-elec',
-    dashboardController.indexElecShare)
+    app.get('/index-installed-capacity',
+    dashboardController.indexInstalledCapacity)
+
+    app.get('/index-share-of-renew',
+    dashboardController.indexShareOfRenew)
 }

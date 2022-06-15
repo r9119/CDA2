@@ -1,6 +1,6 @@
 module.exports = mongoose => {
-    const Emission = mongoose.model(
-      "Emission",
+    const installedCapacity = mongoose.model(
+      "installedCapacity",
       mongoose.Schema(
         {
           country_code: String,
@@ -9,9 +9,9 @@ module.exports = mongoose => {
           data: Array
         },
         {
-          collection: 'emissions'
+          collection: 'installedCapacity'
         }
       )
     );
-    return Emission;
+    return installedCapacity;
   };

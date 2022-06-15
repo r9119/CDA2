@@ -11,8 +11,15 @@ export default {
             }
         })
     },
-    indexElecPrice(country) {
-        return Api().get('/index-elec-price', {
+    indexConsumerElecPrice(country) {
+        return Api().get('/index-elec-price-consumer', {
+            params: {
+                country
+            }
+        })
+    },
+    indexIndustryElecPrice(country) {
+        return Api().get('/index-elec-price-industry', {
             params: {
                 country
             }
@@ -25,8 +32,15 @@ export default {
             }
         })
     },
-    indexElecShare(country) {
-        return Api().get('/index-share-of-elec', {
+    indexInstalledCapacity(country) {
+        return Api().get('/index-installed-capacity', {
+            params: {
+                country
+            }
+        })
+    },
+    indexShareOfRenew(country) {
+        return Api().get('/index-share-of-renew', {
             params: {
                 country
             }

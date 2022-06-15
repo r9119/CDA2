@@ -4,13 +4,7 @@
             <Navbar />
         </div>
 
-        <div v-if="loading">
-            <div style="position: absolute; top: 50%; left: 50%;">
-                <i class="pi pi-spin pi-spinner" style="font-size: 5rem; color: #551a8b;"></i>
-            </div>
-        </div>
-
-        <div v-else id="details-box">
+        <div id="details-box">
             <div class="col-11 mx-auto">
                 <Card>
                     <template #title>
@@ -40,7 +34,7 @@
                                                     :height="180"
                                                 />
                                             </TabPanel>
-                                        </TabView>
+                                        </TabView>  
                                     </template>
                                     <template #content>
                                         {{ dataStory.oilSection }}
@@ -72,45 +66,13 @@
 
                                 <Card id="elec-price-card">
                                     <template #header>
-                                        <TabView>
-                                            <TabPanel header="Vor 2007 (Househalte)">
-                                                <Line
-                                                    :chart-options="elecPriceOptions"
-                                                    :chart-data="elecPricesConsumerPre2007"
-                                                    chart-id="electricity-prices-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                            <TabPanel header="Nach 2007 (Househalte)">
-                                                <Line
-                                                    :chart-options="elecPriceOptions"
-                                                    :chart-data="elecPricesConsumerPost2007"
-                                                    chart-id="electricity-prices-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                            <TabPanel header="Vor 2007 (Industrie)">
-                                                <Line
-                                                    :chart-options="elecPriceOptions"
-                                                    :chart-data="elecPricesIndustryPre2007"
-                                                    chart-id="electricity-prices-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                            <TabPanel header="Nach 2007 (Industrie)">
-                                                <Line
-                                                    :chart-options="elecPriceOptions"
-                                                    :chart-data="elecPricesIndustryPost2007"
-                                                    chart-id="electricity-prices-chart"
-                                                    :width="400"
-                                                    :height="180"
-                                                />
-                                            </TabPanel>
-                                        </TabView>
-                                        
+                                        <Line
+                                            :chart-options="elecPriceOptions"
+                                            :chart-data="elecPrices"
+                                            chart-id="electricity-prices-chart"
+                                            :width="400"
+                                            :height="180"
+                                        />
                                     </template>
                                     <template #content>
                                         {{ dataStory.elecPriceSection }}
@@ -210,17 +172,19 @@
 
 <script>
 import Navbar from '../components/NavBar.vue'
-import dataService from '../services/dataService'
+// All of this needs to be dynamic from DB at some point
 import story from '../../../Data sets/spain-dataStory.json'
+import oilPrice from '../../../Data sets/DCOILBRENTEU.json'
+import shareOfElec from '../../../Data sets/share-elec-by-source.json'
+import elecPrices from '../../../Data sets/Electricity_prices_spain.json'
+import energyGeneration from '../../../Data sets/Total generation-energyGeneration.json'
+import emissions from '../../../Data sets/Total tCO2 eq-emissions.json'
 import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
+import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
 
-ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
-
-// Dropdown with year selection by LM
-// One graph with all years with no scatter data to compare years
+ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin)
 
 export default {
     components: {
@@ -229,8 +193,6 @@ export default {
     },
     data() {
         return {
-            loading: true,
-            temp: null,
             oilOptions: {
                 responsive: true,
                 scales: {
@@ -257,12 +219,26 @@ export default {
                         display: true,
                         text: "Der Brentölpreis im Überblick"
                     },
+                    zoom: {
+                        limits: {
+                            y: {min: -10, max: 175}
+                        },
+                        pan: {
+                            enabled: true
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                                speed: 0.3
+                            }
+                        }
+                    },
                     annotation: {
                         annotations: {
                             label1: {
                                 type: 'label',
-                                xValue: '2008-07-03',
-                                yValue: 144,
+                                xValue: 5517,
+                                yValue: 143.1,
                                 xAdjust: 100,
                                 yAdjust: -5,
                                 backgroundColor: 'rgba(245,245,245)',
@@ -278,7 +254,7 @@ export default {
                             },
                             label2: {
                                 type: 'label',
-                                xValue: '2020-02-20',
+                                xValue: 8556,
                                 yValue: 51,
                                 xAdjust: -100,
                                 yAdjust: 50,
@@ -307,14 +283,14 @@ export default {
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
-                                return value * 100 + "%"
+                                return value + "%"
                             }
                         }
                     },
                     x: {
                         title: {
                             display: true,
-                            text: "Datum"
+                            text: "Jahr"
                         }
                     }
                 },
@@ -325,7 +301,7 @@ export default {
                     },
                     zoom: {
                         limits: {
-                            y: {min: 0, max: 1}
+                            y: {min: -5, max: 60}
                         },
                         pan: {
                             enabled: true
@@ -364,6 +340,20 @@ export default {
                     title: {
                         display: true,
                         text: `Strompreise in ${this.$route.query.land}`
+                    },
+                    zoom: {
+                        limits: {
+                            y: {min: 0, max: 0.5}
+                        },
+                        pan: {
+                            enabled: true
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                                speed: 0.3
+                            }
+                        }
                     }
                 }
             },
@@ -452,129 +442,24 @@ export default {
                 }
             },
             dataStory: null,
-            oilPrice: {
-                datasets: []
-            },
-            shareOfElec: {
-                labels: [],
-                datasets: []
-            },
-            elecPricesConsumerPre2007: {
-                labels: [],
-                datasets: []
-            },
-            elecPricesConsumerPost2007: {
-                labels: [],
-                datasets: []
-            },
-            elecPricesIndustryPre2007: {
-                labels: [],
-                datasets: []
-            },
-            elecPricesIndustryPost2007: {
-                labels: [],
-                datasets: []
-            },
-            energyGeneration: {},
-            emissions: {}
+            oilPrice: null,
+            shareOfElec: null,
+            elecPrices: null,
+            energyGeneration: null,
+            emissions: null
         }
     },
-    async beforeMount() {
-        this.loading = true
+    beforeMount() {
         this.dataStory = story
-
-        let country = this.$route.query.land
-
-        let colors = ["#4B1D91CC", "#661796CC", "#7D129ACC", "#910F9CCC", "#A4129DCC", "#B51A9CCC", "#C42599CC", "#D23293CC", "#DF408CCC", "#EB4E82CC", "#EF6276CC", "#F1756BCC", "#F38763CC", "#F3975ECC", "#F2A75FCC", "#F0B768CC", "#ECC579CC", "#E7D39ACC"]
-        
-        // this.oilPrice.labels = this.temp.labels
-        switch(country) {
-            case "Spain":
-                this.oilPrice.datasets.push({
-                    label: "Brentölpreis",
-                    // parsing: false,
-                    fill: false,
-                    borderWidth: 2,
-                    borderColor: colors[0],
-                    tension: 0.5,
-                    pointRadius: 0,
-                    data: (await dataService.indexOilPrice()).data
-                })
-
-                this.temp = (await dataService.indexInstalledCapacity(country)).data
-                // console.log(this.temp)
-                this.shareOfElec.labels = this.temp[0].data.labels
-                this.temp.forEach((element, index) => {
-                    this.shareOfElec.datasets.push({
-                        label: element.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 0,
-                        data: element.data.percentages
-                    })
-                });
-
-                this.temp = (await dataService.indexConsumerElecPrice(country)).data
-                this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
-                this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
-                this.temp.slice(0,5).forEach((element, index) => {
-                    this.elecPricesConsumerPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-5).forEach((element, index) => {
-                    this.elecPricesConsumerPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-
-                this.temp = (await dataService.indexIndustryElecPrice(country)).data
-                this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
-                this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
-                this.temp.slice(0,9).forEach((element, index) => {
-                    this.elecPricesIndustryPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-7).forEach((element, index) => {
-                    this.elecPricesIndustryPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-
-
-                break
-            default:
-                
-        }
-        
-        this.loading = false
+        this.oilPrice = oilPrice
+        this.shareOfElec = shareOfElec
+        this.elecPrices = elecPrices
+        this.energyGeneration = energyGeneration
+        this.emissions = emissions
+    },
+    mounted() {
+        this.energyGenerationOptions.plugins.zoom.limits.y.max = Math.max(...this.energyGeneration.datasets[0].data) + 10000
+        this.emissionOptions.plugins.zoom.limits.y.max = Math.max(...this.emissions.datasets[0].data) + 1000
     }
 }
 </script>
