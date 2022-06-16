@@ -204,14 +204,14 @@ yearly_oil_price_df <- mutate(oil_price_data, year = year(period)) %>%
 yearly_oil_price_collection <- mongo(collection = "yearlyBrentOilPrice", db = "cda22")
 yearly_oil_price_collection$insert(yearly_oil_price_df)
 
-emissions_europe <- read.csv("./datasets/ghg-emissions-by-sector.csv") %>%
+emissions_europe <- read.csv("analysisInR/datasets/ghg-emissions-by-sector.csv") %>%
   filter(Entity == "European Union (27)") %>%
   select(Year, Electricity.and.heat)
 
 emissions_europe_collection <- mongo(collection = "emissionsEurope", db = "cda22")
 emissions_europe_collection$insert(emissions_europe)
 
-co2_prices_europe <- read.csv("./datasets/EMBER_Coal2Clean_EUETSPrices.csv") %>%
+co2_prices_europe <- read.csv("analysisInR/datasets/EMBER_Coal2Clean_EUETSPrices.csv") %>%
   mutate(Date = ymd_hms(Date))
 
 co2_price_europe_collection <- mongo(collection = "co2PriceEurope", db = "cda22")

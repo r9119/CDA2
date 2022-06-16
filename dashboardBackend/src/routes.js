@@ -20,9 +20,18 @@ module.exports = (app) => {
     app.get('/index-emissions',
     dashboardController.indexEmissions)
 
-    app.get('/index-installed-capacity',
-    dashboardController.indexInstalledCapacity)
+    // app.get('/index-installed-capacity',
+    // dashboardController.indexInstalledCapacity)
 
-    app.get('/index-share-of-renew',
-    dashboardController.indexShareOfRenew)
+    app.get('/index-lcoe',
+    dashboardController.indexLcoe)
+
+    app.get('/index-lm',
+    dashboardController.indexLinearModel)
+
+    app.get('/index-yearly-brent',
+    dashboardController.indexYearlyBrent)
+
+    app.get('/index-eu-emissions',
+    dashboardController.indexEuEmissions)
 }

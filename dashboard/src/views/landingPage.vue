@@ -48,6 +48,10 @@
                                     :height="180"
                                 />
                             </template>
+                            <template #footer>
+                                <b>Quellen:</b>
+                                <p><a target="_blank" href="https://tradingeconomics.com/commodity/brent-crude-oil">Brentölpreis</a>  <a target="_blank" href="https://ourworldindata.org/grapher/co-emissions-by-sector?country=~European+Union+%2827%29">Eu Emissionen</a></p>
+                            </template>
                         </Card>
                     </template>
                 </Card>
@@ -82,6 +86,10 @@ export default {
         return {
             oilOptions: {
                 responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     y: {
                         title: {
@@ -97,11 +105,12 @@ export default {
                     y1: {
                         title: {
                             display: true,
-                            text: "Europäische Emissionen (tonnen)"
+                            text: "Europäische Emissionen (kt Co2)"
                         },
+                        position: "right",
                         ticks: {
                             callback: function(value, index, ticks) {
-                                return value + "t"
+                                return (value/1000) + "kt"
                             }
                         }
                     },
@@ -115,52 +124,21 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: "Der Brentölpreis im Überblick"
+                        text: "Der Brentölpreis und die gesamt emissionen im Überblick"
                     },
-                    // zoom: {
-                    //     limits: {
-                    //         y: {min: -10, max: 175}
-                    //     },
-                    //     pan: {
-                    //         enabled: true
-                    //     },
-                    //     zoom: {
-                    //         wheel: {
-                    //             enabled: true,
-                    //             speed: 0.3
-                    //         }
-                    //     }
-                    // },
                     annotation: {
                         annotations: {
                             label1: {
                                 type: 'label',
-                                xValue: '2008-07-03',
-                                yValue: 144,
-                                xAdjust: 100,
-                                yAdjust: -5,
+                                xValue: 18,
+                                yValue: 14000,
+                                xAdjust: -150,
+                                yAdjust: -15,
                                 backgroundColor: 'rgba(245,245,245)',
                                 content: ['Die 2008 Immobilienkreise.'],
                                 textAlign: 'start',
                                 font: {
-                                    size: 10
-                                },
-                                callout: {
-                                    enabled: true,
-                                    side: 10
-                                }
-                            },
-                            label2: {
-                                type: 'label',
-                                xValue: '2020-02-20',
-                                yValue: 51,
-                                xAdjust: -100,
-                                yAdjust: 50,
-                                backgroundColor: 'rgba(245,245,245)',
-                                content: ['Der Covid Öl crash.'],
-                                textAlign: 'start',
-                                font: {
-                                    size: 10
+                                    size: 18
                                 },
                                 callout: {
                                     enabled: true,
@@ -172,7 +150,7 @@ export default {
                 }
             },
             oilPrice: {
-                // labels: [],
+                labels: [],
                 datasets: []
             },
             geojson: geoData,
@@ -187,8 +165,7 @@ export default {
             },
             showTooltip: false,
             loading: false,
-            temp: null,
-            downsampled: []
+            temp: null
         }
     },
     async beforeMount() {
@@ -199,20 +176,31 @@ export default {
         circleMarker(latLng, { radius: 8 });
         this.mapIsReady = true;
 
-        this.temp = (await dataService.indexOilPrice()).data
+        this.temp = (await dataService.indexYearlyBrent()).data
 
-        this.temp.map(i => {
-            this.downsampled.push((i.x), i.y)
-        })
-
+        this.oilPrice.labels = this.temp.labels
         this.oilPrice.datasets.push({
-            label: "Brent Oil Price",
+            label: "Brentölpreis",
             fill: false,
             borderWidth: 2,
             borderColor: "#4B1D91CC",
             tension: 0.5,
             pointRadius: 0,
-            data: this.temp
+            data: this.temp.sums,
+            yAxisID: 'y'
+        })
+
+        this.temp = (await dataService.indexEuEmissions()).data
+
+        this.oilPrice.datasets.push({
+            label: "Emissionen der gesamnte EU",
+            fill: false,
+            borderWidth: 2,
+            borderColor: "#EB4E82CC",
+            tension: 0.5,
+            pointRadius: 0,
+            data: this.temp.emissions,
+            yAxisID: 'y1'
         })
 
         this.loading = false

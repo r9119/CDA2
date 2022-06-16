@@ -5,7 +5,10 @@ const ConsumerPrices = db.ConsumerPrices
 const IndustryPrices = db.IndustryPrices
 const EnergyGen = db.EnergyGeneration
 const InstalledCapacity = db.InstalledCapacity
-const ShareOfRenewables = db.ShareOfRenewables
+const LCOE = db.LCOE
+const LM = db.LinearModel
+const YearlyBrent = db.YearlyBrentOilPrice
+const EuEmissions = db.EmissionsEurope
 
 // let dates = array.map(a => a.date) 
 
@@ -22,16 +25,16 @@ module.exports = {
                 // }
                 let results = []
 
-                // data.map(i => {
-                //     results.push({
-                //         x: i.period,
-                //         y: i.value
-                //     })
-                // })
-
                 data.map(i => {
-                    results.push([i.period, i.value])
+                    results.push({
+                        x: i.period,
+                        y: i.value
+                    })
                 })
+
+                // data.map(i => {
+                //     results.push([i.period, i.value])
+                // })
 
                 res.send(results);
             })
@@ -51,18 +54,18 @@ module.exports = {
                 let results = []
                 
                 // If Spain is queried, REEData has a different structure than EuroStat data. So this is accounting for that
-                switch(country) {
-                    case "Spain":
-                        data[0].data.map(i => {
-                            results.push({
-                                name: i.label,
-                                lables: i.data.map(a => a.date),
-                                percentages: i.data.map(a => a.percentage),
-                                values: i.data.map(a => a.value)
-                            })
-                        })
-                        break;
-                    default:
+                // switch(country) {
+                //     case "Spain":
+                //         data[0].data.map(i => {
+                //             results.push({
+                //                 name: i.label,
+                //                 lables: i.data.map(a => a.date),
+                //                 percentages: i.data.map(a => a.percentage),
+                //                 values: i.data.map(a => a.value)
+                //             })
+                //         })
+                //         break;
+                //     default:
                         data.map(i => {
                           results.push({
                               date: i.data.map(a => a.date),
@@ -82,7 +85,7 @@ module.exports = {
                         //         })
                         //     })
                         // })
-                }
+                // }
 
                 res.send(results)
             })
@@ -101,33 +104,33 @@ module.exports = {
             .then(data => {
                 let results = []
                 // If Spain is queried, skip over REE Data
-                switch(country) {
-                    case "Spain":
-                            data[1].data.map(i => {
-                                results.push({
-                                    period: "Pre 2007",
-                                    data: {
-                                        name: i.label,
-                                        code: i.code,
-                                        values: i.data.map(a => a.value),
-                                        labels: i.data.map(a => a.date)
-                                    }
-                                })
-                            })
+                // switch(country) {
+                //     case "Spain":
+                //             data[1].data.map(i => {
+                //                 results.push({
+                //                     period: "Pre 2007",
+                //                     data: {
+                //                         name: i.label,
+                //                         code: i.code,
+                //                         values: i.data.map(a => a.value),
+                //                         labels: i.data.map(a => a.date)
+                //                     }
+                //                 })
+                //             })
 
-                            data[2].data.map(i => {
-                                results.push({
-                                    period: "Post 2007",
-                                    data: {
-                                        name: i.label,
-                                        code: i.code,
-                                        values: i.data.map(a => a.value),
-                                        labels: i.data.map(a => a.date)
-                                    }
-                                })
-                            })
-                        break;
-                    default:
+                //             data[2].data.map(i => {
+                //                 results.push({
+                //                     period: "Post 2007",
+                //                     data: {
+                //                         name: i.label,
+                //                         code: i.code,
+                //                         values: i.data.map(a => a.value),
+                //                         labels: i.data.map(a => a.date)
+                //                     }
+                //                 })
+                //             })
+                //         break;
+                //     default:
                         data[0].data.map(i => {
                             results.push({
                                 period: "Pre 2007",
@@ -151,7 +154,7 @@ module.exports = {
                                 }
                             })
                         })
-                }
+                // }
 
                 res.send(results)
             })
@@ -211,21 +214,22 @@ module.exports = {
             .then(data => {
                 let results = []
 
-                switch(country) {
-                    case "Spain":
-                        data[0].data.map(i => {
-                            results.push({
-                                name: i.label,
-                                code: i.code,
-                                data: {
-                                    labels: i.data.map(a => a.date),
-                                    percentages: i.data.map(a => a.percentage),
-                                    values: i.data.map(a => a.value)
-                                }
-                            })
-                        })
-                        break;
-                    default:
+                // switch(country) {
+                //     case "Spain":
+                //         console.log(data[0].data)
+                //         data[0].data.map(i => {
+                //             results.push({
+                //                 name: i.label,
+                //                 code: i.code,
+                //                 data: {
+                //                     labels: i.data.map(a => a.date),
+                //                     percentages: i.data.map(a => a.percentage),
+                //                     values: i.data.map(a => a.value)
+                //                 }
+                //             })
+                //         })
+                //         break;
+                //     default:
                         data.map(i => {
                             results.push({
                                 date: i.data.map(a => a.date),
@@ -264,7 +268,7 @@ module.exports = {
                                 }
                             })
                         })
-                }
+                // }
 
                 res.send(results)
             })
@@ -275,80 +279,76 @@ module.exports = {
             })
         }
     },
-    async indexInstalledCapacity (req, res) {
+    async indexLcoe (req, res) {
         try {
-            let country = req.query.country
-
-            await InstalledCapacity.find({ country_name: country })
-            .then(data => {
-                let results = []
-
-                switch(country) {
-                    case "Spain":
-                        data[0].data.map(i => {
-                            results.push({
-                                name: i.label,
-                                code: i.code,
-                                data: {
-                                    labels: i.data.map(a => a.date.substring(0,10)),
-                                    percentages: i.data.map(a => a.percentage),
-                                    values: i.data.map(a => a.value)
-                                }
-                            })
-                        })
-                        
-                        break;
-                    default:
-                        data[0].data.map(i => {
-                            i.data.map(j => {
-                                results.push({
-                                    name: i.label,
-                                    data: {
-                                        name: j.label,
-                                        code: j.code,
-                                        data: {
-                                            labels: j.data.map(a => a.date),
-                                            values: j.data.map(a => a.value)
-                                        }
-                                    }
-                                })
-                            })
-                            results.push({
-                                name: i.label,
-                                data: {
-                                    labels: i.data.map(a => a.date),
-                                    values: i.data.map(a => a.value)
-                                }
-                            })
-                        })
-                }
-
-                res.send(results)
+            await LCOE.find({}).then(data => {
+                res.send(data[0])
             })
         } catch (err) {
             console.log(err)
             res.status(500).send({
-                error: "There was an error fetching share of electricity data for: " + req.query.country
+                error: "There was an error fetching LCOE"
             })
         }
     },
-    async indexShareOfRenew (req, res) {
+    async indexLinearModel (req, res) {
         try {
-            let country = req.query.country
+            let results = {
+                labels: [],
+                values: [],
+                scatterData: []
+            }
 
-            await ShareOfRenewables.find({ country_name: country })
-            .then(data => {
-                let results = []
-
+            let tempOil = []
+            let tempEmissions = []
+            // { country_name: req.query.country }
+            await LM.find({}).then(data => {
                 data[0].data.map(i => {
-                    results.push({
-                        name: i.label,
-                        code: i.code,
-                        data: {
-                            labels: i.data.map(a => a.date),
-                            values: i.data.map(a => a.value)
-                        }
-                    })
+                    results.labels.push(i[0])
+                    results.values.push(i[1])
+                })
+            })
+
+            await YearlyBrent.find({}).then(data => {
+                data.map(i => {
+                    tempOil.push(i.sum)
+                })
+            })
+            // { country_name: req.query.country }
+            await Emission.find({}).then(data => {
+                data[0].data.map(i => {
+                    tempEmissions.push(i['Fuel combustion in public electricity and heat production'])
+                })
+            })
+
+            tempOil.map((element, index) => {
+                results.scatterData.push({
+                    x: element,
+                    y: tempEmissions[index]
+                })
+            })
+
+            res.send(results)
+        } catch (err) {
+            console.log(err)
+            res.status(500).send({
+                error: "There was an error fetching the linear model for " + req.query.country
+            })
+        }
+    },
+    async indexYearlyBrent (req, res) {
+        try {
+            await YearlyBrent.find({}).then(data => {
+                let results = {
+                    labels: [],
+                    sums: [],
+                    avgs: []
+                }
+
+                data.map(i => {
+                    results.labels.push(i.year)
+                    results.sums.push(i.sum)
+                    results.avgs.push(i.avg)
                 })
 
                 res.send(results)
@@ -356,7 +356,28 @@ module.exports = {
         } catch (err) {
             console.log(err)
             res.status(500).send({
-                error: "There was an error fetching share of electricity data for: " + req.query.country
+                error: "There was an error fetching the reduced brent oil price"
+            })
+        }
+    },
+    async indexEuEmissions (req, res) {
+        try {
+            await EuEmissions.find({}).then(data => {
+                let results = {
+                    labels: [],
+                    emissions: []
+                }
+
+                data.map(i => {
+                    results.labels.push(i.Year)
+                    results.emissions.push(i.Electricity_and_heat)
+                })
+
+                res.send(results)
+            })
+        } catch (err) {
+            res.status(500).send({
+                error: "There was en error fetching EU emissions"
             })
         }
     }

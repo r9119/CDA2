@@ -24,7 +24,7 @@
                                         <TabView>
                                             <TabPanel header="Simple">
                                                 <Line 
-                                                    :chart-options="oilOptions"
+                                                    :chart-options="oilOptionsReduced"
                                                     :chart-data="oilPriceReduced"
                                                     chart-id="oil-price-chart-reduced"
                                                     :width="400"
@@ -162,15 +162,15 @@
                                 <Card id="model-card">
                                     <template #header>
                                         <Line
-                                            :chart-options="emissionOptions"
-                                            :chart-data="emissions"
-                                            chart-id="energy-emissions-chart"
+                                            :chart-options="linearModelOptions"
+                                            :chart-data="linearModel"
+                                            chart-id="linear-model-chart"
                                             :width="400"
                                             :height="180"
                                         />
                                     </template>
                                     <template #content>
-                                        Das ist noch nicht fertig
+                                            Das ist noch nicht fertig
                                     </template>
                                 </Card>
 
@@ -216,7 +216,7 @@
 import Navbar from '../components/NavBar.vue'
 import dataService from '../services/dataService'
 import story from '../../../Data sets/spain-dataStory.json'
-import { Line, Bar } from 'vue-chartjs'
+import { Line, Bar, Scatter } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -230,7 +230,8 @@ export default {
     components: {
         Navbar,
         Line,
-        Bar
+        Bar,
+        Scatter
     },
     data() {
         return {
@@ -278,7 +279,7 @@ export default {
                                 content: ['Die 2008 Immobilienkreise.'],
                                 textAlign: 'start',
                                 font: {
-                                    size: 10
+                                    size: 12
                                 },
                                 callout: {
                                     enabled: true,
@@ -295,7 +296,60 @@ export default {
                                 content: ['Der Covid Öl crash.'],
                                 textAlign: 'start',
                                 font: {
-                                    size: 10
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            oilOptionsReduced: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Brentölpreis ($)"
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return "$" + value
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Datum"
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "Der Brentölpreis im Überblick"
+                    },
+                    annotation: {
+                        annotations: {
+                            label1: {
+                                type: 'label',
+                                xValue: 18,
+                                yValue: 92.554,
+                                xAdjust: -125,
+                                yAdjust: -10,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Die 2008 Immobilienkreise.'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
                                 },
                                 callout: {
                                     enabled: true,
@@ -416,7 +470,7 @@ export default {
                     },
                     zoom: {
                         limits: {
-                            y: {min: 0, max: 10000000}
+                            y: {min: 0, max: 15000}
                         },
                         pan: {
                             enabled: true
@@ -462,7 +516,7 @@ export default {
                     },
                     zoom: {
                         limits: {
-                            y: {min: 0, max: 30000}
+                            y: {min: 0, max: 200000}
                         },
                         pan: {
                             enabled: true
@@ -473,6 +527,19 @@ export default {
                                 speed: 0.3
                             }
                         }
+                    }
+                }
+            },
+            linearModelOptions: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Lineare Modell zum einfluss der ölpreis auf die emissionen in ${this.$route.query.land}`
                     }
                 }
             },
@@ -509,6 +576,7 @@ export default {
                 datasets: []
             },
             oilPriceReduced: {
+                labels: [],
                 datasets: []
             },
             shareOfElec: {
@@ -531,12 +599,6 @@ export default {
                 labels: [],
                 datasets: []
             },
-            simulationData: {
-                labels: ['Haushald Preis', 'Industry Preis'],
-                datasets: [
-                   
-                ]
-            },
             energyGeneration: {
               labels: [],
               datasets: []
@@ -544,6 +606,14 @@ export default {
             emissions: {
               labels: [],
               datasets: []
+            },
+            linearModel: {
+                labels: [],
+                datasets: []
+            },
+            simulationData: {
+                labels: ['Haushald Preis', 'Industry Preis'],
+                datasets: []
             },
             simulation: {
                 options: [{
@@ -587,212 +657,149 @@ export default {
         let country = this.$route.query.land
 
         let colors = ["#4B1D91CC", "#661796CC", "#7D129ACC", "#910F9CCC", "#A4129DCC", "#B51A9CCC", "#C42599CC", "#D23293CC", "#DF408CCC", "#EB4E82CC", "#EF6276CC", "#F1756BCC", "#F38763CC", "#F3975ECC", "#F2A75FCC", "#F0B768CC", "#ECC579CC", "#E7D39ACC"]
+
+        this.oilPrice.datasets.push({
+            label: "Brentölpreis",
+            fill: false,
+            borderWidth: 2,
+            borderColor: colors[0],
+            tension: 0.5,
+            pointRadius: 0,
+            data: (await dataService.indexOilPrice()).data
+        })
+
+        this.temp = (await dataService.indexYearlyBrent()).data
+
+        this.oilPriceReduced.labels = this.temp.labels
+        this.oilPriceReduced.datasets.push({
+            label: "Brentölpreis",
+            fill: false,
+            borderWidth: 2,
+            borderColor: colors[0],
+            tension: 0.5,
+            pointRadius: 0,
+            data: this.temp.avgs,
+        })
+
+        this.temp = (await dataService.indexEnergyGen(country)).data
+        this.shareOfElec.labels = this.temp[0].date
+        Object.keys(this.temp[0].percentage).forEach((element, index) => {
+            this.shareOfElec.datasets.push({
+                label: element,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 0,
+                data: this.temp[0].percentage[element]
+            })
+        });
         
-        switch(country) {
-            case "Spain":
-                this.oilPrice.datasets.push({
-                    label: "Brentölpreis",
-                    // parsing: false,
-                    fill: false,
-                    borderWidth: 2,
-                    borderColor: colors[0],
-                    tension: 0.5,
-                    pointRadius: 0,
-                    data: (await dataService.indexOilPrice()).data
-                })
+        this.energyGeneration.labels = this.temp[0].date
+        Object.keys(this.temp[0].percentage).forEach((element, index) => {
+            this.energyGeneration.datasets.push({
+                label: element,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 0,
+                data: this.temp[0].absolute[element]
+            })
+        });
 
-                this.temp = (await dataService.indexInstalledCapacity(country)).data
-                this.shareOfElec.labels = this.temp[0].data.labels
-                this.temp.forEach((element, index) => {
-                    this.shareOfElec.datasets.push({
-                        label: element.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 0,
-                        data: element.data.percentages
-                    })
-                });
+        this.temp = (await dataService.indexConsumerElecPrice(country)).data
+        this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
+        this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
+        this.temp.slice(0,5).forEach((element, index) => {
+            this.elecPricesConsumerPre2007.datasets.push({
+                label: element.data.name,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 2,
+                data: element.data.values
+            })
+        });
+        this.temp.slice(-5).forEach((element, index) => {
+            this.elecPricesConsumerPost2007.datasets.push({
+                label: element.data.name,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 2,
+                data: element.data.values
+            })
+        });
 
-                this.temp = (await dataService.indexConsumerElecPrice(country)).data
-                this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
-                this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
-                this.temp.slice(0,5).forEach((element, index) => {
-                    this.elecPricesConsumerPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-5).forEach((element, index) => {
-                    this.elecPricesConsumerPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
+        this.temp = (await dataService.indexIndustryElecPrice(country)).data
+        this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
+        this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
+        this.temp.slice(0,9).forEach((element, index) => {
+            this.elecPricesIndustryPre2007.datasets.push({
+                label: element.data.name,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 2,
+                data: element.data.values
+            })
+        });
+        this.temp.slice(-7).forEach((element, index) => {
+            this.elecPricesIndustryPost2007.datasets.push({
+                label: element.data.name,
+                fill: false,
+                borderWidth: 2,
+                borderColor: colors[index],
+                tension: 0.5,
+                pointRadius: 2,
+                data: element.data.values
+            })
+        });
 
-                this.temp = (await dataService.indexIndustryElecPrice(country)).data
-                this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
-                this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
-                this.temp.slice(0,9).forEach((element, index) => {
-                    this.elecPricesIndustryPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-7).forEach((element, index) => {
-                    this.elecPricesIndustryPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
+        this.temp = (await dataService.indexEmissions(country)).data
+        this.emissions.labels = this.temp[0].date
+        this.emissions.datasets.push({
+            label: "Emissionen",
+            fill: false,
+            borderWidth: 2,
+            borderColor: colors[0],
+            tension: 0.5,
+            pointRadius: 2,
+            data: this.temp[0].emissions
+        })
 
-                this.simulationData.datasets.push({
-                    label: "2019 Preise",
-                    data: [0.3, 0.2],
-                    borderColor: colors[0],
-                    backgroundColor: 'rgba(75, 29, 145, 0.3)',
-                    borderWidth: 2,
-                    borderSkipped: false
-                })
-                this.simulationData.datasets.push({
-                    label: "Simulations Preise",
-                    data: [0.25, 0.18],
-                    borderColor: colors[12],
-                    backgroundColor: "rgba(243, 135, 99, 0.3)",
-                    borderWidth: 2,
-                    borderSkipped: false
-                })
+        this.temp = (await dataService.indexLm(country)).data
+        this.linearModel.labels = this.temp.labels
+        this.linearModel.datasets.push({
+            label: "Korrelation",
+            fill: false,
+            borderWidth: 2,
+            borderColor: colors[0],
+            tension: 0.5,
+            pointRadius: 2,
+            data: this.temp.values
+        })
 
-                break
-            default:
-                this.oilPrice.datasets.push({
-                    label: "Brentölpreis",
-                    // parsing: false,
-                    fill: false,
-                    borderWidth: 2,
-                    borderColor: colors[0],
-                    tension: 0.5,
-                    pointRadius: 0,
-                    data: (await dataService.indexOilPrice()).data
-                })
-
-                this.temp = (await dataService.indexEnergyGen(country)).data
-                this.shareOfElec.labels = this.temp[0].date
-                Object.keys(this.temp[0].percentage).forEach((element, index) => {
-                    this.shareOfElec.datasets.push({
-                        label: element,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 0,
-                        data: this.temp[0].percentage[element]
-                    })
-                });
-
-                this.energyGeneration.labels = this.temp[0].date
-                Object.keys(this.temp[0].total).forEach((element, index) => {
-                    this.energyGeneration.datasets.push({
-                        label: element,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 0,
-                        data: this.temp[0].total[element]
-                    })
-                });
-
-                this.temp = (await dataService.indexEmissions(country)).data
-
-                this.emissions.labels = this.temp[0].date
-                // Object.keys(this.temp[0].).forEach((element, index) => {
-                    this.emissions.datasets.push({
-                        label: 'Emissions from fuel combustion in public electricity and heat production',
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[0],
-                        tension: 0.5,
-                        pointRadius: 0,
-                        data: this.temp[0].emissions
-                    })
-                console.log(this.temp)
-                // });
-
-
-                this.temp = (await dataService.indexConsumerElecPrice(country)).data
-                this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
-                this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
-                this.temp.slice(0,5).forEach((element, index) => {
-                    this.elecPricesConsumerPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-5).forEach((element, index) => {
-                    this.elecPricesConsumerPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-
-                this.temp = (await dataService.indexIndustryElecPrice(country)).data
-                this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
-                this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
-                this.temp.slice(0,9).forEach((element, index) => {
-                    this.elecPricesIndustryPre2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-                this.temp.slice(-7).forEach((element, index) => {
-                    this.elecPricesIndustryPost2007.datasets.push({
-                        label: element.data.name,
-                        fill: false,
-                        borderWidth: 2,
-                        borderColor: colors[index],
-                        tension: 0.5,
-                        pointRadius: 2,
-                        data: element.data.values
-                    })
-                });
-        }
+        this.simulationData.datasets.push({
+            label: "2019 Preise",
+            data: [0.3, 0.2],
+            borderColor: colors[0],
+            backgroundColor: 'rgba(75, 29, 145, 0.3)',
+            borderWidth: 2,
+            borderSkipped: false
+        })
+        this.simulationData.datasets.push({
+            label: "Simulations Preise",
+            data: [0.25, 0.18],
+            borderColor: colors[12],
+            backgroundColor: "rgba(243, 135, 99, 0.3)",
+            borderWidth: 2,
+            borderSkipped: false
+        })
 
         this.temp = null
         

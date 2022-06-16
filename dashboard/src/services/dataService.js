@@ -45,5 +45,17 @@ export default {
                 country
             }
         })
+    },
+    indexLcoe() {
+        return Api().get('/index-lcoe')
+    },
+    indexLm() {
+        return Api().get('/index-lm')
+    },
+    indexYearlyBrent() {
+        return Api().get('/index-yearly-brent')
+    },
+    indexEuEmissions() {
+        return Api().get('/index-eu-emissions')
     }
 }
