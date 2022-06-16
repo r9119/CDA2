@@ -15,7 +15,7 @@ module.exports = (app) => {
     dashboardController.indexIndustryElecPrices)
 
     app.get('/index-energy-gen',
-    dashboardController.indexEneryGen)
+    dashboardController.indexEnergyGen)
 
     app.get('/index-emissions',
     dashboardController.indexEmissions)

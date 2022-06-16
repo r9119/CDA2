@@ -3,7 +3,7 @@ const BrentOilPrice = db.BrentOilPrice
 const Emission = db.Emission
 const ConsumerPrices = db.ConsumerPrices
 const IndustryPrices = db.IndustryPrices
-const EneryGen = db.EnergyGeneration
+const EnergyGen = db.EnergyGeneration
 const InstalledCapacity = db.InstalledCapacity
 const ShareOfRenewables = db.ShareOfRenewables
 
@@ -63,19 +63,25 @@ module.exports = {
                         })
                         break;
                     default:
-                        data[0].data.map(i => {
-                            i.data.map(j => {
-                                results.push({
-                                    name: i.label,
-                                    data: {
-                                        name: j.label,
-                                        code: j.code,
-                                        labels: j.data.map(a => a.date),
-                                        values: j.data.map(a => a.value)
-                                    }
-                                })
-                            })
-                        })
+                        data.map(i => {
+                          results.push({
+                              date: i.data.map(a => a.date),
+                              emissions: i.data.map(a => a['Fuel combustion in public electricity and heat production'])
+                          })
+                      })
+                        // data[0].data.map(i => {
+                        //     i.data.map(j => {
+                        //         results.push({
+                        //             name: i.label,
+                        //             data: {
+                        //                 name: j.label,
+                        //                 code: j.code,
+                        //                 labels: j.data.map(a => a.date),
+                        //                 values: j.data.map(a => a.value)
+                        //             }
+                        //         })
+                        //     })
+                        // })
                 }
 
                 res.send(results)
@@ -197,11 +203,11 @@ module.exports = {
             })
         }
     },
-    async indexEneryGen (req, res) {
+    async indexEnergyGen (req, res) {
         try {
             let country = req.query.country
 
-            await EneryGen.find({ country_name: country })
+            await EnergyGen.find({ country_name: country })
             .then(data => {
                 let results = []
 
@@ -220,16 +226,41 @@ module.exports = {
                         })
                         break;
                     default:
-                        data[0].data.map(i => {
+                        data.map(i => {
                             results.push({
-                                name: i.label,
-                                code: i.code,
-                                data: {
-                                    labels: i.data.map(a => a.date),
-                                    values: i.data.map(a => a.value),
-                                    percentage: i.data.map((a, index) => {
-                                        return a.value / data[0].data[18].data[index].value
-                                    })
+                                date: i.data.map(a => a.date),
+                                absolute: {
+                                    'Coal and manufactured gases': i.data.map(a => a['Coal and manufactured gases']),
+                                    // 'Combustible fuels': i.data.map(a => a['Combustible fuels']),
+                                    'Natural gas': i.data.map(a => a['Natural gas']),
+                                    'Nuclear fuels and other fuels n_e_c_': i.data.map(a => a['Nuclear fuels and other fuels n_e_c_']),
+                                    'Oil and petroleum products (exluding biofuel portion)': i.data.map(a => a['Oil and petroleum products (exluding biofuel portion)']),
+                                    'Hydro': i.data.map(a => a['Hydro']),
+                                    'Geothermal': i.data.map(a => a['Geothermal']),
+                                    'Wind on shore': i.data.map(a => a['Wind on shore']),
+                                    'Wind off shore': i.data.map(a => a['Wind off shore']),
+                                    'Solar thermal': i.data.map(a => a['Solar thermal']),
+                                    'Solar photovoltaic': i.data.map(a => a['Solar photovoltaic']),
+                                    'Other renewable energies': i.data.map(a => a['Other renewable energies']),
+                                    'Other fuels n_e_c_': i.data.map(a => a['Other fuels n_e_c_'])
+                                },
+                                percentage: {
+                                    'Coal': i.data.map(a => a['Coal and manufactured gases percentage']),
+                                    'Natural gas': i.data.map(a => a['Natural gas percentage']),
+                                    // 'Combustible fuels': i.data.map(a => a['Combustible fuels percentage']),
+                                    'Nuclear fuels and other fuels n_e_c_': i.data.map(a => a['Nuclear fuels and other fuels n_e_c_ percentage']),
+                                    'Oil and petroleum products (exluding biofuel portion)': i.data.map(a => a['Oil and petroleum products (exluding biofuel portion) percentage']),
+                                    'Hydro': i.data.map(a => a['Hydro percentage']),
+                                    'Geothermal': i.data.map(a => a['Geothermal percentage']),
+                                    'Wind on shore': i.data.map(a => a['Wind on shore percentage']),
+                                    'Wind off shore': i.data.map(a => a['Wind off shore percentage']),
+                                    'Solar thermal': i.data.map(a => a['Solar thermal percentage']),
+                                    'Solar photovoltaic': i.data.map(a => a['Solar photovoltaic percentage']),
+                                    'Other renewable energies': i.data.map(a => a['Other renewable energies percentage']),
+                                    'Other fuels n_e_c_': i.data.map(a => a['Other fuels n_e_c_ percentage'])
+                                },
+                                total: {
+                                    'Produzierte Energie': i.data.map(a => a['Total'])
                                 }
                             })
                         })

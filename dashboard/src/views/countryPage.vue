@@ -440,11 +440,11 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Gesamtenergieemissionen (tCO2)"
+                            text: "GHG Emissionen (tCO2 eq.)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
-                                return value + " tCO2" 
+                                return value + " tCO2 eq." 
                             }
                         }
                     },
@@ -537,8 +537,14 @@ export default {
                    
                 ]
             },
-            energyGeneration: {},
-            emissions: {},
+            energyGeneration: {
+              labels: [],
+              datasets: []
+            },
+            emissions: {
+              labels: [],
+              datasets: []
+            },
             simulation: {
                 options: [{
                     label: "Kohle",
@@ -692,20 +698,48 @@ export default {
                 })
 
                 this.temp = (await dataService.indexEnergyGen(country)).data
-                this.shareOfElec.labels = this.temp[0].data.labels
-                console.log(this.temp.splice(18))
-                this.temp.forEach((element, index) => {
+                this.shareOfElec.labels = this.temp[0].date
+                Object.keys(this.temp[0].percentage).forEach((element, index) => {
                     this.shareOfElec.datasets.push({
-                        label: element.name,
+                        label: element,
                         fill: false,
                         borderWidth: 2,
                         borderColor: colors[index],
                         tension: 0.5,
                         pointRadius: 0,
-                        data: element.data.percentage
+                        data: this.temp[0].percentage[element]
                     })
                 });
-                console.log(this.shareOfElec)
+
+                this.energyGeneration.labels = this.temp[0].date
+                Object.keys(this.temp[0].total).forEach((element, index) => {
+                    this.energyGeneration.datasets.push({
+                        label: element,
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[index],
+                        tension: 0.5,
+                        pointRadius: 0,
+                        data: this.temp[0].total[element]
+                    })
+                });
+
+                this.temp = (await dataService.indexEmissions(country)).data
+
+                this.emissions.labels = this.temp[0].date
+                // Object.keys(this.temp[0].).forEach((element, index) => {
+                    this.emissions.datasets.push({
+                        label: 'Emissions from fuel combustion in public electricity and heat production',
+                        fill: false,
+                        borderWidth: 2,
+                        borderColor: colors[0],
+                        tension: 0.5,
+                        pointRadius: 0,
+                        data: this.temp[0].emissions
+                    })
+                console.log(this.temp)
+                // });
+
 
                 this.temp = (await dataService.indexConsumerElecPrice(country)).data
                 this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
