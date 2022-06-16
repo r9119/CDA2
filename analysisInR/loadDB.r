@@ -87,7 +87,7 @@ getAndWriteEurostatData <- function(codes, labels, second_codes = NULL, second_l
     row$data <- list(country_data)
     data <- rbind(data, row)
   }
-  db_collection <- mongo(collection = collection, db = "cda22")
+  db_collection <- mongo(collection = collection, db = "cda2")
   db_collection$insert(data)
 }
 
@@ -120,12 +120,22 @@ getAndWriteFlatEurostatData <- function(codes, labels, second_code = NULL, secon
     } else{
       flat_country_data %<>% arrange(date)
       flat_row$data <- list(flat_country_data)
-      # flat_row$data[[1]] %<>% arrange(date)
     }
     flat_data <- rbind(flat_data, flat_row)
   }
-  flat_collection <- mongo(collection = collection, db = "cda22")
+  flat_collection <- mongo(collection = collection, db = "cda2")
   flat_collection$insert(flat_data)
+}
+
+flattenTable <- function(input_data) {
+  flat_data <- data.frame()
+  for (i in seq_len(nrow(input_data))) {
+    label_data <- input_data[i, ]$data[[1]]
+    label_data %<>% mutate(datetime = yq(date), year = year(datetime), source = input_data[i, ]$label, type = input_data[i, ]$attributes_type)
+    flat_data <- rbind(flat_data, label_data)
+  }
+  flat_data %<>% arrange(date)
+  return(flat_data)
 }
 
 prepReeData <- function(data, new_data) {
@@ -160,7 +170,7 @@ collectReeData <- function(years, url, trunc, collection) {
   }
   row <- data.frame(country_code = "ES", country_name = "Spain", comment = "ree data")
   row$data <- list(ree_data)
-  db_collection <- mongo(collection = collection, db = "cda22")
+  db_collection <- mongo(collection = collection, db = "cda2")
   db_collection$insert(row)
 }
 
@@ -192,7 +202,7 @@ oil_price_data <- oil_price_data %>% select(
   -"series-description",
   -units
 )
-oil_price_collection <- mongo(collection = "BrentOilPrice", db = "cda22")
+oil_price_collection <- mongo(collection = "BrentOilPrice", db = "cda2")
 oil_price_collection$insert(oil_price_data)
 
 
@@ -201,24 +211,24 @@ yearly_oil_price_df <- mutate(oil_price_data, year = year(period)) %>%
   group_by(year) %>%
   summarise(sum = sum(value), avg = sum / n())
 
-yearly_oil_price_collection <- mongo(collection = "yearlyBrentOilPrice", db = "cda22")
+yearly_oil_price_collection <- mongo(collection = "yearlyBrentOilPrice", db = "cda2")
 yearly_oil_price_collection$insert(yearly_oil_price_df)
 
-emissions_europe <- read.csv("analysisInR/datasets/ghg-emissions-by-sector.csv") %>%
+emissions_europe <- read.csv("./datasets/ghg-emissions-by-sector.csv") %>%
   filter(Entity == "European Union (27)") %>%
   select(Year, Electricity.and.heat)
 
-emissions_europe_collection <- mongo(collection = "emissionsEurope", db = "cda22")
+emissions_europe_collection <- mongo(collection = "emissionsEurope", db = "cda2")
 emissions_europe_collection$insert(emissions_europe)
 
-co2_prices_europe <- read.csv("analysisInR/datasets/EMBER_Coal2Clean_EUETSPrices.csv") %>%
+co2_prices_europe <- read.csv("./datasets/EMBER_Coal2Clean_EUETSPrices.csv") %>%
   mutate(Date = ymd_hms(Date))
 
-co2_price_europe_collection <- mongo(collection = "co2PriceEurope", db = "cda22")
+co2_price_europe_collection <- mongo(collection = "co2PriceEurope", db = "cda2")
 co2_price_europe_collection$insert(co2_prices_europe)
 
-lcoe <- data.frame("Gas Peaker" = 175, "Nuclear" = 155, "Solar Thermal Power" = 141, "Coal" = 109, "Gas" = 56, "Onshore Wind" = 41, "Solar Photovoltaic" = 40, "Offshore Wind" = 115)
-lcoe_collection <- mongo(collection = "LCOE", db = "cda22")
+lcoe <- data.frame("Coal" = 109, "Gas" = 56, "Onshore Wind" = 41, "Offshore Wind" = 115, "Solar Thermal Power" = 141, "Solar Photovoltaic" = 40)
+lcoe_collection <- mongo(collection = "LCOE", db = "cda2")
 lcoe_collection$insert(lcoe)
 
 # --- data from eurostat ---
@@ -325,8 +335,8 @@ getAndWriteFlatEurostatData(
 )
 
 model_db <- data.frame()
-for (code in country_code) {
-  emissions_collection <- mongo(collection = "emissions", db = "cda22")
+for (code in country_list$country_code) {
+  emissions_collection <- mongo(collection = "emissions", db = "cda2")
   emissions <- as_tibble(emissions_collection$find(paste('{"country_code":"', code, '"}', sep = "")))
   emissions <- emissions$data[[1]]
   colnames(emissions) <- c("date", "emissions")
@@ -334,12 +344,13 @@ for (code in country_code) {
   lm <- lm(emissions ~ avg, data = model_data, x = TRUE, y = TRUE)
   point1 <- c("x" = 0, "y" = unname(coefficients(lm)[1]))
   point2 <- c("x" = max(model_data$avg), "y" = unname(coefficients(lm)[2]) * unname(max(model_data$avg)) + unname(coefficients(lm)[1]))
-  model_row <- data.frame(country_code = code)
+  r2 <- c("r2" = summary(lm)$r.squared)
+  model_row <- data.frame(country_code = code, coundy_name = country_list[country_list$country_code == code, ]$country, r2 = r2)
   model_row$data <- list(rbind(point1, point2))
   model_db <- rbind(model_db, model_row)
 }
 
-model_collection <- mongo(collection = "linearModel", db = "cda22")
+model_collection <- mongo(collection = "linearModel", db = "cda2")
 model_collection$insert(model_db)
 
 # ## --- share of energy by renewables ---
@@ -484,3 +495,39 @@ getAndWriteEurostatData(
   precision = "semester",
   comment = "after 2007"
 )
+
+simulation_df <- data.frame()
+for (code in country_list$country_code) {
+  consumer_price_collection <- mongo(collection = "consumerPrices", db = "cda2")
+  consumer_prices <- as_tibble(consumer_price_collection$find(paste('{"country_code":"', code, '", "comment":"after 2007"}', sep = "")))
+  consumer_prices <- consumer_prices$data[[1]]
+  consumer_prices %<>% flattenTable()
+  consumer_prices <- consumer_prices %>% filter(year == 2019) %>% pivot_wider(names_from = source, values_from = c(value)) %>% select(-date, -datetime, -year)
+  consumer_prices <- data.frame(as.list(colMeans(consumer_prices)))
+  consumer_price <- rowMeans(consumer_prices) * 1000
+
+  industry_price_collection <- mongo(collection = "industryPrices", db = "cda2")
+  industry_prices <- as_tibble(industry_price_collection$find(paste('{"country_code":"', code, '", "comment":"after 2007"}', sep = "")))
+  industry_prices <- industry_prices$data[[1]]
+  industry_prices %<>% flattenTable()
+  industry_prices <- industry_prices %>% filter(year == 2019) %>% pivot_wider(names_from = source, values_from = c(value)) %>% select(-date, -datetime, -year)
+  industry_prices <- data.frame(as.list(colMeans(industry_prices)))
+  industry_price <- rowMeans(industry_prices) * 1000
+
+  energy_collection <- mongo(collection = "energyGeneration2019", db = "cda2")
+  energy <- as_tibble(energy_collection$find(paste('{"country_code":"', code, '"}', sep = "")))
+  energy <- energy$data[[1]] %>% select("Coal_and_manufactured_gases_percentage", "Natural_gas_percentage", "Wind_on_shore_percentage", "Wind_off_shore_percentage", "Solar_thermal_percentage", "Solar_photovoltaic_percentage")
+
+  lcoe <- data.frame("Coal" = 109, "Gas" = 56, "Onshore Wind" = 41, "Offshore Wind" = 115, "Solar Thermal Power" = 141, "Solar Photovoltaic" = 40)
+  energy <- round(energy, digits = 2)
+  rest_consumer <- sum(energy) * consumer_price
+  unexplained_consumer <- consumer_price - (consumer_price * sum(energy)) + ((consumer_price * sum(energy)) - sum(energy * lcoe))
+  unexplained_industry <- industry_price - (industry_price * sum(energy)) + ((industry_price * sum(energy)) - sum(energy * lcoe))
+
+  simulation_row <- data.frame(country_name = country_list[country_list$country_code == code, ]$country, country_code = code, consumer_price = consumer_price, industry_price = industry_price, unexplained_consumer = unexplained_consumer, unexplained_industry = unexplained_industry)
+  simulation_row$data <- list(data.frame(percentages = energy))
+  simulation_df <- rbind(simulation_df, simulation_row)
+}
+
+simulation_collection <- mongo(collection = "simulation", db = "cda2")
+simulation_collection$insert(simulation_df)
