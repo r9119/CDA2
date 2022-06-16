@@ -34,4 +34,7 @@ module.exports = (app) => {
 
     app.get('/index-eu-emissions',
     dashboardController.indexEuEmissions)
+
+    app.get('/index-simulation',
+    dashboardController.indexSimulation)
 }

@@ -57,5 +57,12 @@ export default {
     },
     indexEuEmissions() {
         return Api().get('/index-eu-emissions')
-    }
+    },
+    indexSimulation(country) {
+      return Api().get('/index-simulation', {
+          params: {
+              country
+          }
+      })
+  },
 }

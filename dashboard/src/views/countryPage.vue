@@ -14,7 +14,7 @@
             <div class="col-11 mx-auto">
                 <Card>
                     <template #title>
-                       Eine Analyse der Effects des Brentölpreises auf die Emissionen in: {{ $route.query.land }}
+                       Eine Analyse der Effekte des Brentölpreises auf die Emissionen in: {{ $route.query.land }}
                     </template>
                     <template #content>
                         <div id="charts" class="grid">
@@ -182,7 +182,7 @@
                                     <template #header>
                                         <div class="col-10 mx-auto">
                                             <div class="col-3" style="display: inline-block">
-                                                <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.options" optionLabel="label" placeholder="Technologie zum Erhöhen" />
+                                                <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.decreaseOptions" optionLabel="label" placeholder="Technologie zum Senken" />
                                             </div>
                                             <div class="col-6" style="display: inline-block">
                                                 <b>{{simulation.increasingSector.label}}:</b> {{simulation[simulation.increasingSector.value]}}
@@ -190,7 +190,7 @@
                                                 <b>{{simulation.decreasingSector.label}}:</b> {{simulation[simulation.decreasingSector.value]}}
                                             </div>
                                             <div class="col-3" style="display: inline-block">
-                                                <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.options" optionLabel="label" placeholder="Technologie zum Senken" />
+                                                <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.increaseOptions" optionLabel="label" placeholder="Technologie zum Erhöhen" />
                                             </div>
                                         </div>
 
@@ -416,7 +416,7 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Preis für 1 kWh (€)"
+                            text: "Preis für 1 MWh (€)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
@@ -549,7 +549,7 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Preis für 1 kWh (€)"
+                            text: "Preis (€) / MWh"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
@@ -612,17 +612,11 @@ export default {
                 datasets: []
             },
             simulationData: {
-                labels: ['Haushald Preis', 'Industry Preis'],
+                labels: ['Haushalt', 'Industrie'],
                 datasets: []
             },
             simulation: {
-                options: [{
-                    label: "Kohle",
-                    value: "coalValue"
-                },{
-                    label: "Erdgas",
-                    value: "gasValue"
-                },{
+                increaseOptions: [{
                     label: "Wind on shore",
                     value: "windOnshoreValue"
                 },{
@@ -634,6 +628,13 @@ export default {
                 },{
                     label: "Solar thermisch",
                     value: "solarThermalValue"
+                }],
+                decreaseOptions: [{
+                    label: "Kohle",
+                    value: "coalValue"
+                },{
+                    label: "Erdgas",
+                    value: "gasValue"
                 }],
                 coalValue: 0,
                 gasvalue: 0,
@@ -783,10 +784,11 @@ export default {
             pointRadius: 2,
             data: this.temp.values
         })
-
+        this.temp = (await dataService.indexSimulation(country)).data
+        console.log(this.temp[0])
         this.simulationData.datasets.push({
             label: "2019 Preise",
-            data: [0.3, 0.2],
+            data: [this.temp[0].consumer_price, this.temp[0].industry_price],
             borderColor: colors[0],
             backgroundColor: 'rgba(75, 29, 145, 0.3)',
             borderWidth: 2,

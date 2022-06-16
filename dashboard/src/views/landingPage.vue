@@ -14,7 +14,7 @@
             <div class="col-11 mx-auto">
                 <Card>
                     <template #title>
-                        Der Ölpreis und seine Effects auf unser Stromerzeugungsverhalten und Emissionen
+                        Der Ölpreis und seine Effekte auf unser Stromerzeugungsverhalten und unsere Emissionen
                     </template>
                     <template #content>
                         <Card style="margin-bottom: 10px;">
@@ -37,7 +37,7 @@
                         
                         <Card>
                             <template #title>
-                                Ein Kurzen Überblick
+                                Ein Kurzer Überblick
                             </template>
                             <template #content>
                                 <Line 
@@ -50,7 +50,7 @@
                             </template>
                             <template #footer>
                                 <b>Quellen:</b>
-                                <p><a target="_blank" href="https://tradingeconomics.com/commodity/brent-crude-oil">Brentölpreis</a>  <a target="_blank" href="https://ourworldindata.org/grapher/co-emissions-by-sector?country=~European+Union+%2827%29">Eu Emissionen</a></p>
+                                <p><a target="_blank" href="https://tradingeconomics.com/commodity/brent-crude-oil">Brentölpreis</a>  <a target="_blank" href="https://ourworldindata.org/grapher/co-emissions-by-sector?country=~European+Union+%2827%29">EU Emissionen</a></p>
                             </template>
                         </Card>
                     </template>

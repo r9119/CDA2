@@ -9,6 +9,7 @@ const LCOE = db.LCOE
 const LM = db.LinearModel
 const YearlyBrent = db.YearlyBrentOilPrice
 const EuEmissions = db.EmissionsEurope
+const Simulation = db.Simulation
 
 // let dates = array.map(a => a.date) 
 
@@ -213,29 +214,11 @@ module.exports = {
             await EnergyGen.find({ country_name: country })
             .then(data => {
                 let results = []
-
-                // switch(country) {
-                //     case "Spain":
-                //         console.log(data[0].data)
-                //         data[0].data.map(i => {
-                //             results.push({
-                //                 name: i.label,
-                //                 code: i.code,
-                //                 data: {
-                //                     labels: i.data.map(a => a.date),
-                //                     percentages: i.data.map(a => a.percentage),
-                //                     values: i.data.map(a => a.value)
-                //                 }
-                //             })
-                //         })
-                //         break;
-                //     default:
                         data.map(i => {
                             results.push({
                                 date: i.data.map(a => a.date),
                                 absolute: {
                                     'Coal and manufactured gases': i.data.map(a => a['Coal and manufactured gases']),
-                                    // 'Combustible fuels': i.data.map(a => a['Combustible fuels']),
                                     'Natural gas': i.data.map(a => a['Natural gas']),
                                     'Nuclear fuels and other fuels n_e_c_': i.data.map(a => a['Nuclear fuels and other fuels n_e_c_']),
                                     'Oil and petroleum products (exluding biofuel portion)': i.data.map(a => a['Oil and petroleum products (exluding biofuel portion)']),
@@ -251,7 +234,6 @@ module.exports = {
                                 percentage: {
                                     'Coal': i.data.map(a => a['Coal and manufactured gases percentage']),
                                     'Natural gas': i.data.map(a => a['Natural gas percentage']),
-                                    // 'Combustible fuels': i.data.map(a => a['Combustible fuels percentage']),
                                     'Nuclear fuels and other fuels n_e_c_': i.data.map(a => a['Nuclear fuels and other fuels n_e_c_ percentage']),
                                     'Oil and petroleum products (exluding biofuel portion)': i.data.map(a => a['Oil and petroleum products (exluding biofuel portion) percentage']),
                                     'Hydro': i.data.map(a => a['Hydro percentage']),
@@ -268,8 +250,6 @@ module.exports = {
                                 }
                             })
                         })
-                // }
-
                 res.send(results)
             })
         } catch (err) {
@@ -380,7 +360,32 @@ module.exports = {
                 error: "There was en error fetching EU emissions"
             })
         }
-    }
+    },
+    async indexSimulation (req, res) {
+      try {
+          let country = req.query.country
+
+          await Simulation.find({ country_name: country })
+          .then(data => {
+              let results = []
+              data.map(i => {
+                  results.push({
+                    consumer_price: i.consumer_price,
+                    industry_price: i.industry_price,
+                    unexplained_consumer: i.unexplained_consumer,
+                    unexplained_industry: i.unexplained_industry,
+                    percentages: i.data
+                  })
+              })
+              res.send(results)
+          })
+      } catch (err) {
+          console.log(err)
+          res.status(500).send({
+              error: "There was an error fetching simulation data for: " + req.query.country
+          })
+      }
+  },
 }
 
 // If we add coal prices/more just import the model (const name = db.nameInDb) and copy one of the index functions and change the name and error message.
