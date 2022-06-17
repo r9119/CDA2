@@ -273,29 +273,32 @@ module.exports = {
     },
     async indexLinearModel (req, res) {
         try {
+            let country = req.query.country
             let results = {
                 labels: [],
                 values: [],
+                rValue: null,
                 scatterData: []
             }
 
             let tempOil = []
             let tempEmissions = []
-            // { country_name: req.query.country }
-            await LM.find({}).then(data => {
+            await LM.find({ coundy_name: country }).then(data => {
                 data[0].data.map(i => {
                     results.labels.push(i[0])
                     results.values.push(i[1])
                 })
+                results.rValue = data[0].r2
             })
 
             await YearlyBrent.find({}).then(data => {
+                data = data.slice(32)
                 data.map(i => {
                     tempOil.push(i.sum)
                 })
             })
-            // { country_name: req.query.country }
-            await Emission.find({}).then(data => {
+            await Emission.find({ country_name: country }).then(data => {
+                console.log(data)
                 data[0].data.map(i => {
                     tempEmissions.push(i['Fuel combustion in public electricity and heat production'])
                 })

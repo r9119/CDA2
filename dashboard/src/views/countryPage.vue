@@ -161,7 +161,7 @@
 
                                 <Card id="model-card">
                                     <template #header>
-                                        <Line
+                                        <Scatter
                                             :chart-options="linearModelOptions"
                                             :chart-data="linearModel"
                                             chart-id="linear-model-chart"
@@ -185,9 +185,9 @@
                                                 <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.increaseOptions" optionLabel="label" placeholder="Technologie zum Erhöhen" @change="updateMinMax" />
                                             </div>
                                             <div class="col-6" style="display: inline-block">
-                                                <b>{{simulation.increasingSector.label}}:</b> {{simulation.values[simulation.increasingSector.value]}}
+                                                <b>{{simulation.increasingSector.label}}:</b> {{simulation.values[simulation.increasingSector.value] * 100}}%
                                                 <Slider :step="0.01" style="margin: 10px;" v-model="simulation.values[simulation.decreasingSector.value]" :min="simulation.min" :max="simulation.max" @change="updateIncreaseValue" />
-                                                <b>{{simulation.decreasingSector.label}}:</b> {{simulation.values[simulation.decreasingSector.value]}}
+                                                <b>{{simulation.decreasingSector.label}}:</b> {{simulation.values[simulation.decreasingSector.value] * 100}}%
                                             </div>
                                             <div class="col-3" style="display: inline-block">
                                                 <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.decreaseOptions" optionLabel="label" placeholder="Technologie zum Senken" @change="updateMinMax" />
@@ -220,7 +220,7 @@ import { Line, Bar, Scatter } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
-import {sum} from 'mathjs'
+import {sum, round} from 'mathjs'
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
 
@@ -556,7 +556,8 @@ export default {
                             callback: function(value, index, ticks) {
                                 return "€" + value 
                             }
-                        }
+                        },
+                        max: 350
                     },
                     x: {
                         title: {
@@ -775,7 +776,6 @@ export default {
         })
 
         this.temp = (await dataService.indexLm(country)).data
-        this.linearModel.labels = this.temp.labels
         this.linearModel.datasets.push({
             label: "Korrelation",
             fill: false,
@@ -783,7 +783,7 @@ export default {
             borderColor: colors[0],
             tension: 0.5,
             pointRadius: 2,
-            data: this.temp.values
+            data: this.temp.scatterData
         })
 
         this.temp = (await dataService.indexSimulation(country)).data
@@ -822,13 +822,14 @@ export default {
                 this.simulation.values = Object.values(this.temp[0].percentages[0])
                 this.simulation.max = this.simulation.values[this.simulation.increasingSector.value] + this.simulation.values[this.simulation.decreasingSector.value]
                 this.simulation.originalDecreaseValue = this.simulation.values[this.simulation.decreasingSector.value]
+                this.simulation.originalIncreaseValue = this.simulation.values[this.simulation.increasingSector.value]
                 this.temp = null
             } catch (err) {
                 console.log(err)
             }
         },
         updateIncreaseValue() {
-            this.simulation.values[this.simulation.increasingSector.value] = this.simulation.originalDecreaseValue - this.simulation.values[this.simulation.decreasingSector.value]
+            this.simulation.values[this.simulation.increasingSector.value] = round(this.simulation.originalIncreaseValue + (this.simulation.originalDecreaseValue - this.simulation.values[this.simulation.decreasingSector.value]), 4)
             let result = []
             let temp = []
 
