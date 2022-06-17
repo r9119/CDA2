@@ -173,7 +173,7 @@
 <script>
 import Navbar from '../components/NavBar.vue'
 // All of this needs to be dynamic from DB at some point
-import story from '../../../Data sets/spain-dataStory.json'
+import story from '../../public/spain-dataStory.json'
 import oilPrice from '../../../Data sets/DCOILBRENTEU.json'
 import shareOfElec from '../../../Data sets/share-elec-by-source.json'
 import elecPrices from '../../../Data sets/Electricity_prices_spain.json'

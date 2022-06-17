@@ -246,7 +246,7 @@
 <script>
 import Navbar from '../components/NavBar.vue'
 import dataService from '../services/dataService'
-import story from '../../../Data sets/spain-dataStory.json'
+import story from '../../public/spain-dataStory.json'
 import { Line, Bar, Scatter } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
@@ -297,7 +297,7 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: "Der Brentölpreis im Überblick"
+                        text: "Brentölpreis im Überblick"
                     },
                     annotation: {
                         annotations: {
@@ -360,14 +360,14 @@ export default {
                     x: {
                         title: {
                             display: true,
-                            text: "Datum"
+                            text: "Jahr"
                         }
                     }
                 },
                 plugins: {
                     title: {
                         display: true,
-                        text: "Der Brentölpreis im Überblick"
+                        text: "Brentölpreis im Überblick"
                     },
                     annotation: {
                         annotations: {
@@ -420,7 +420,7 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: `Der Anteil Stromerzeugung nach Quellen in ${this.$route.query.land}`
+                        text: `Anteil Stromerzeugung pro Quelle in ${this.$route.query.land}`
                     },
                     zoom: {
                         limits: {
@@ -448,7 +448,7 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Preis für 1 MWh (€)"
+                            text: "Preis pro MWh (€)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
@@ -459,7 +459,7 @@ export default {
                     x: {
                         title: {
                             display: true,
-                            text: "Halb Jahr"
+                            text: "Semester"
                         }
                     }
                 },
@@ -480,7 +480,7 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Gesamte Energieerzeugung (MWh)"
+                            text: "Produzierte Energie (MWh)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
@@ -583,7 +583,7 @@ export default {
                     x: {
                         title: {
                             display: true,
-                            text: "Brentölpreis (Jahr summiert)"
+                            text: "Brentölpreis (Jährlich aufsummiert)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
@@ -595,7 +595,7 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: `Lineare Modell zum einfluss der ölpreis auf die emissionen in ${this.$route.query.land}`
+                        text: `Lineares Modell: Einfluss des Ölpreis auf die Emissionen in ${this.$route.query.land}`
                     },
                     annotation: {
                         annotations: {
@@ -641,7 +641,7 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: "Wie energie preise mit der energie quellen ändern"
+                        text: "Wie Strompreise auf einen höheren Anteil erneuerbaren Energien reagieren"
                     }
                 }
             },
@@ -857,7 +857,7 @@ export default {
             pointRadius: 2,
             data: this.temp.scatterData
         })
-        this.linearModelOptions.plugins.annotation.annotations.label1.content.push("Die korrelation bei " + country + " im Jahr 2019 ist: " + round(this.temp.rValue, 5))
+        this.linearModelOptions.plugins.annotation.annotations.label1.content.push("R² für " + country + " beträgt: " + round(this.temp.rValue, 5))
 
         this.temp = (await dataService.indexSimulation(country)).data
         this.simulationData.datasets.push({
@@ -869,7 +869,7 @@ export default {
             borderSkipped: false
         })
         this.simulationData.datasets.push({
-            label: "Simulations Preise",
+            label: "Szenariorechnung",
             data: [this.temp[0].consumer_price, this.temp[0].industry_price],
             borderColor: colors[12],
             backgroundColor: "rgba(243, 135, 99, 0.3)",

@@ -279,6 +279,7 @@ glimpse(generation_data)
 #   labs(y = "Energy Production", title = "Spain\'s total Electricity production")
 # ggplotly(p)
 # Europas Energieerzeugung ist heute recht diversifiziert, aber immer noch stark von fossilen Brennstoffen abhängig. Bei den umweltschädlicheren fossilen Brennstoffen wie Kohle und Öl findet man teilweise einen Abwärtstrend, jedoch gibt es auch Länder, bei welchen dieser ausfällt. In den 1980er bis Mitte der 90er Jahre bestand die Energieerzeugung zur Hälfte aus fossilen Brennstoffen, vor allem Kohle und Öl, und zur anderen Hälfte aus Kernkraft, Wind- und Wasserkraft. Das änderte sich jedoch um die Jahrtausendwende, als der Erdgasanteil in Spanien auf über 30 Prozent anstieg. Nachdem Erdgas im Jahr 2008 seinen Höchststand erreicht hatte, wurde es langsam zugunsten billigerer, sauberer und erneuerbarer Energiequellen verdrängt. Wind- und Solarenergie sind seither stetig auf dem Vormarsch und haben zusammen alle anderen Sektoren überholt.
+# In den letzten 10 Jahre sind die Emissionen des spanischen Stromsektors immer im Winter gestiegen, im Frühling stark gesunken und mit der Hitze des Sommers wieder angestiegen. Die Emissionen blieben insgesamt von Jahr zu Jahr gleich, mit dem gleichen Muster bis 2019, wo die Emissionen zu Beginn des Frühlings wie gewohnt sanken, aber nicht wieder zu den normalen Höhen wie in den vergangenen Sommer und Winter; zusätzlich waren die Emissionen im Frühling 2020 sogar niedriger und sind seither auf diesem Stand geblieben.
 ggplot(generation_data, aes(date, value, fill = source)) +
   geom_area()
 

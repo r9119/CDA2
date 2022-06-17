@@ -511,6 +511,9 @@ for (code in country_list$country_code) {
   industry_prices <- industry_prices$data[[1]]
   industry_prices %<>% flattenTable()
   industry_prices <- industry_prices %>% filter(year == 2019) %>% pivot_wider(names_from = source, values_from = c(value)) %>% select(-date, -datetime, -year)
+  if (code ==  "DE") {
+    industry_prices[1, 7] <- 0.1114
+  }
   industry_prices <- data.frame(as.list(colMeans(industry_prices)))
   industry_price <- rowMeans(industry_prices) * 1000
 
