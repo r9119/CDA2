@@ -568,6 +568,30 @@ export default {
                     mode: 'index',
                     intersect: false
                 },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: "GHG Emissionen (tCO2 eq.)"
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value + " tCO2 eq." 
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Brentölpreis (Jahr summiert)"
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value + " $" 
+                            }
+                        }
+                    }
+                },
                 plugins: {
                     title: {
                         display: true,
@@ -577,8 +601,8 @@ export default {
                         annotations: {
                             label1: {
                                 type: 'label',
-                                xValue: 2500,
-                                yValue: 10000,
+                                xValue: 3000,
+                                yValue: 7500,
                                 // xAdjust: 1000,
                                 // yAdjust: -10000,
                                 backgroundColor: 'rgba(245,245,245)',
