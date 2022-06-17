@@ -1,7 +1,7 @@
 # Instructions / Notes
 In this folder, the data is read, saved and analyzed.  
 
-`Analysis-notebook.Rmd` is a work in progress. Currently it pulls data from energy departements of Spain, Netherlands and Poland and saves it to mongoDB although only Spain's data is more detailed than the data provided by eurostat. The analysis part doesn't work at the moment.  
+`Analysis-notebook.Rmd` is to be considered as a Notebook. We documented our analysis and preparation for the dashboard in it. 
 
 `loadDB.r` reads data from eurostat for every country, prepares it and saves it to mongodb.  
 
@@ -21,3 +21,4 @@ To start it again type
 ```
 docker start 'id'
 ```
+When the Docker Container is running, the file `loadDB.r` can be executed to provide the DB with data. Please note, that it isn't designed to be executed multiple times. Dump the Database `cda2` before running the script again to ensure a clean database.
