@@ -21,9 +21,3 @@ To start it again type
 ```
 docker start 'id'
 ```
-
-# ToDos
-- Change analysis Notebook to read from MongoDB
-- analyse and understand the data thoroughly
-- read and save more detailed data where possible and needed
-- test, if DB structure works for the Frontend
