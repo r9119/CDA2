@@ -49,8 +49,12 @@ export default {
     indexLcoe() {
         return Api().get('/index-lcoe')
     },
-    indexLm() {
-        return Api().get('/index-lm')
+    indexLm(country) {
+        return Api().get('/index-lm', {
+            params: {
+              country
+          }
+        })
     },
     indexYearlyBrent() {
         return Api().get('/index-yearly-brent')

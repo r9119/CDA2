@@ -37,7 +37,7 @@
                         
                         <Card>
                             <template #title>
-                                Ein Kurzer Überblick
+                                Ein kurzer Überblick
                             </template>
                             <template #content>
                                 <Line 
@@ -124,7 +124,7 @@ export default {
                 plugins: {
                     title: {
                         display: true,
-                        text: "Der Brentölpreis und die gesamt emissionen im Überblick"
+                        text: "Der Brentölpreis und die Emissionen der EU im Überblick"
                     },
                     annotation: {
                         annotations: {
@@ -193,7 +193,7 @@ export default {
         this.temp = (await dataService.indexEuEmissions()).data
 
         this.oilPrice.datasets.push({
-            label: "Emissionen der gesamnte EU",
+            label: "Emissionen der gesamten EU",
             fill: false,
             borderWidth: 2,
             borderColor: "#EB4E82CC",

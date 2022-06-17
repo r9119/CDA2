@@ -345,7 +345,7 @@ for (code in country_list$country_code) {
   point1 <- c("x" = 0, "y" = unname(coefficients(lm)[1]))
   point2 <- c("x" = max(model_data$avg), "y" = unname(coefficients(lm)[2]) * unname(max(model_data$avg)) + unname(coefficients(lm)[1]))
   r2 <- c("r2" = summary(lm)$r.squared)
-  model_row <- data.frame(country_code = code, coundy_name = country_list[country_list$country_code == code, ]$country, r2 = r2)
+  model_row <- data.frame(country_code = code, country_name = country_list[country_list$country_code == code, ]$country, r2 = r2)
   model_row$data <- list(rbind(point1, point2))
   model_db <- rbind(model_db, model_row)
 }

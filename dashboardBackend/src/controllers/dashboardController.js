@@ -283,7 +283,7 @@ module.exports = {
 
             let tempOil = []
             let tempEmissions = []
-            await LM.find({ coundy_name: country }).then(data => {
+            await LM.find({ country_name: country }).then(data => {
                 data[0].data.map(i => {
                     results.labels.push(i[0])
                     results.values.push(i[1])

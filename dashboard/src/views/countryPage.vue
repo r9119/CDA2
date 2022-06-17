@@ -45,6 +45,10 @@
                                     <template #content>
                                         {{ dataStory.oilSection }}
                                     </template>
+                                    <template #footer>
+                                        <b>Quelle:</b>
+                                        <p><a target="_blank" href="https://tradingeconomics.com/commodity/brent-crude-oil">Brentölpreis</a></p>
+                                    </template>
                                 </Card>
 
                                 <Divider align="center">
@@ -64,10 +68,14 @@
                                     <template #content>
                                         {{ dataStory.shareOfElecSection }}
                                     </template>
+                                    <template #footer>
+                                        <b>Quelle:</b>
+                                        <p><a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_cb_pem/default/table?lang=en&category=env.env_air.env_air_ai">Eurostat</a></p>
+                                    </template>
                                 </Card>
 
                                 <Divider align="center">
-                                    <b>Werden die energiepreise betroffen?</b>
+                                    <b>Werden die Energiepreise betroffen?</b>
                                 </Divider>
 
                                 <Card id="elec-price-card">
@@ -115,6 +123,10 @@
                                     <template #content>
                                         {{ dataStory.elecPriceSection }}
                                     </template>
+                                    <template #footer>
+                                        <b>Quellen:</b>
+                                        <p><a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204_h/default/table?lang=en&category=env.env_air.env_air_ai">Haushaltpreise vor 2007</a>  <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table?lang=en&category=env.env_air.env_air_ai">Haushaltsppreise nach 2007</a> <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_205_h/default/table?lang=en&category=env.env_air.env_air_ai">Industriepreise vor 2007</a> <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_205/default/table?lang=en&category=env.env_air.env_air_ai">Industrieppreise nach 2007</a></p>
+                                    </template>
                                 </Card>
 
                                 <Divider align="center">
@@ -133,6 +145,10 @@
                                     </template>
                                     <template #content>
                                         {{ dataStory.energyGenSection }}
+                                    </template>
+                                    <template #footer>
+                                        <b>Quellen:</b>
+                                        <p><a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_cb_pem/default/table?lang=en&category=env.env_air.env_air_ai">Eurostat</a></p>
                                     </template>
                                 </Card>
 
@@ -153,6 +169,10 @@
                                     <template #content>
                                         {{ dataStory.emissionsSection }}
                                     </template>
+                                    <template #footer>
+                                        <b>Quellen:</b>
+                                        <p><a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/env_air_gge/default/table?lang=en&category=env.env_air.env_air_ai">Eurostat</a></p>
+                                    </template>
                                 </Card>
 
                                 <Divider align="center">
@@ -170,12 +190,16 @@
                                         />
                                     </template>
                                     <template #content>
-                                            Das ist noch nicht fertig
+                                            {{ dataStory.modelSection }}
+                                    </template>
+                                    <template #footer>
+                                        <b>Quellen:</b>
+                                        <p><a target="_blank" href="https://tradingeconomics.com/commodity/brent-crude-oil">Brentölpreis</a>  <a target="_blank" href="https://ourworldindata.org/grapher/co-emissions-by-sector?country=~European+Union+%2827%29">Emissionen</a></p>
                                     </template>
                                 </Card>
 
-                                <Divider>
-                                    <b>Wie siehts aus, wenn die menge fossile Brennstoffe ändert</b>
+                                <Divider align="center">
+                                    <b>Wie verändert sich der Strompreis, wenn der Anteil fossiler Brennstoffe ändert</b>
                                 </Divider>
 
                                 <Card>
@@ -201,6 +225,13 @@
                                             :width="400"
                                             :height="180"
                                         />
+                                    </template>
+                                    <template #content>
+                                            {{ dataStory.simulationSection }}
+                                    </template>
+                                    <template #footer>
+                                        <b>Quellen:</b>
+                                        <p><a target="_blank" href="https://ourworldindata.org/cheap-renewables-growth">LCOEs</a>  <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_204/default/table?lang=en&category=env.env_air.env_air_ai">Haushaltspreis</a> <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_pc_205/default/table?lang=en&category=env.env_air.env_air_ai">Industrieppreis</a> <a target="_blank" href="https://ec.europa.eu/eurostat/databrowser/view/nrg_cb_pem/default/table?lang=en&category=env.env_air.env_air_ai">Anteile Energieproduktion</a></p>
                                     </template>
                                 </Card>
                             </div>
