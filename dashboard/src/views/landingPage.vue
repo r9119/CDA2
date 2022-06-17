@@ -40,13 +40,21 @@
                                 Ein kurzer Überblick
                             </template>
                             <template #content>
-                                <Line 
-                                    :chart-options="oilOptions"
-                                    :chart-data="oilPrice"
-                                    chart-id="oil-price-chart"
-                                    :width="400"
-                                    :height="180"
-                                />
+                                <div class="col-9" style="display: inline-block">
+                                    <Line 
+                                        :chart-options="oilOptions"
+                                        :chart-data="oilPrice"
+                                        chart-id="oil-price-chart"
+                                        :width="400"
+                                        :height="180"
+                                    />
+                                </div>
+                                <div class="col-3"  style="display: inline-block">
+                                    <p>EU Emissionen wären in den 1990er bis Anfang der 2000er Jahre eher stagniert, da die Klimaerwärmung zur Zeit kein Großes Thema war.</p>
+                                    <p>Die größte Senkung von Emissionen gab es während der Immobilienkrise in 2008, wo die Emissionen um 200 Millionen Kilo Tonnen CO2 zurückgingen. Dies ist natürlich nicht nur wegen der damals überhöhten Ölpreise, aber der Ölpreis hatte schon noch einen kleinen Einfluss.</p>
+                                    <p>In den 2010er Jahren war die Klimaerwärmung zu einem wichtigeren Thema geworden, und die EU war führend in den Bemühungen, ihre eigenen und die weltweiten Emissionen zu reduzieren. In dieser Zeit war der Ölpreis ziemlich stabil und hoch, was zu einem weiteren Sinken der Emissionen führte, da die ältere "schmutzigere" Energieerzeugung, wegen steigenden Kosten, abgestellt würden.</p>
+                                    <p>Abschließend lässt sich sagen, dass der Brentölpreis doch ein Effekt hatte auf die Europäische Gesamtemissionen. Wie ihr auf den Detailseiten der Länder werdet sehen, war dieser Effekt bei den meisten Länder jedoch recht gering. Der größte Teil der Emissionsreduzierungen kommt von politische Reformen und neue umweltfreundlichere Gesetze.</p>
+                                </div>
                             </template>
                             <template #footer>
                                 <b>Quellen:</b>
@@ -94,13 +102,14 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Brentölpreis ($)"
+                            text: "Jahresdurchschnitt des Brentölpreis ($)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
                                 return "$" + value
                             }
-                        }
+                        },
+                        max: 140
                     },
                     y1: {
                         title: {
@@ -133,12 +142,12 @@ export default {
                                 xValue: 18,
                                 yValue: 14000,
                                 xAdjust: -150,
-                                yAdjust: -15,
+                                yAdjust: 25,
                                 backgroundColor: 'rgba(245,245,245)',
                                 content: ['Die 2008 Immobilienkreise.'],
                                 textAlign: 'start',
                                 font: {
-                                    size: 18
+                                    size: 15
                                 },
                                 callout: {
                                     enabled: true,
@@ -184,9 +193,9 @@ export default {
             fill: false,
             borderWidth: 2,
             borderColor: "#4B1D91CC",
-            tension: 0.5,
+            tension: 0.4,
             pointRadius: 0,
-            data: this.temp.sums,
+            data: this.temp.avgs,
             yAxisID: 'y'
         })
 
@@ -197,7 +206,7 @@ export default {
             fill: false,
             borderWidth: 2,
             borderColor: "#EB4E82CC",
-            tension: 0.5,
+            tension: 0.4,
             pointRadius: 0,
             data: this.temp.emissions,
             yAxisID: 'y1'

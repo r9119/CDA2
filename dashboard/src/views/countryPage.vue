@@ -31,7 +31,7 @@
                                                     :height="180"
                                                 />
                                             </TabPanel>
-                                            <TabPanel header="Detailed">
+                                            <TabPanel header="Detailiert">
                                                 <Line 
                                                     :chart-options="oilOptions"
                                                     :chart-data="oilPrice"
@@ -334,6 +334,159 @@ export default {
                                     enabled: true,
                                     side: 10
                                 }
+                            },
+                            label3: {
+                                type: 'label',
+                                xValue: '1990-08-01',
+                                yValue: 20,
+                                xAdjust: -20,
+                                yAdjust: -100,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Beginn der Gulfkrigen'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label4: {
+                                type: 'label',
+                                xValue: '1999-02-18',
+                                yValue: 10,
+                                xAdjust: -50,
+                                yAdjust: -100,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Asiatische Märkte erholen sich'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label5: {
+                                type: 'label',
+                                xValue: '2001-09-14',
+                                yValue: 29.22,
+                                xAdjust: -50,
+                                yAdjust: -100,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Terroranschläge vom 11. September'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label6: {
+                                type: 'label',
+                                xValue: '2004-12-09',
+                                yValue: 38.33,
+                                xAdjust: 25,
+                                yAdjust: 65,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Der Asiatichen "Boom"'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label7: {
+                                type: 'label',
+                                xValue: '2010-12-23',
+                                yValue: 93.63,
+                                xAdjust: 40,
+                                yAdjust: 125,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Der Arabischer Frühling/Arabellion'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label8: {
+                                type: 'label',
+                                xValue: '2014-06-16',
+                                yValue: 113.42,
+                                xAdjust: 100,
+                                yAdjust: -45,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['OPEC Shiftet Fokus'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label9: {
+                                type: 'label',
+                                xValue: '2016-02-11',
+                                yValue: 28.82,
+                                xAdjust: -175,
+                                yAdjust: 45,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Die Amerikaner senken Ausgaben und Produktion', 'OPEC plant die Einfrierung der Produktion'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label10: {
+                                type: 'label',
+                                xValue: '2018-10-01',
+                                yValue: 84.94,
+                                xAdjust: 0,
+                                yAdjust: -45,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['Iranische Sanktionen', 'Saudische Überversorgung'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
+                            },
+                            label11: {
+                                type: 'label',
+                                xValue: '2020-10-30',
+                                yValue: 36.33,
+                                xAdjust: -40,
+                                yAdjust: 110,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: ['"Post" Covid demand übersteigt den Supply'],
+                                textAlign: 'start',
+                                font: {
+                                    size: 12
+                                },
+                                callout: {
+                                    enabled: true,
+                                    side: 10
+                                }
                             }
                         }
                     }
@@ -349,7 +502,7 @@ export default {
                     y: {
                         title: {
                             display: true,
-                            text: "Brentölpreis ($)"
+                            text: "Jahresdurchschnitt des Brentölpreis ($)"
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
