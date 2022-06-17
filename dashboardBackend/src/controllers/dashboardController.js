@@ -277,7 +277,7 @@ module.exports = {
             let results = {
                 labels: [],
                 values: [],
-                rValue: null,
+                rValue: 0,
                 scatterData: []
             }
 
@@ -292,13 +292,12 @@ module.exports = {
             })
 
             await YearlyBrent.find({}).then(data => {
-                data = data.slice(32)
+                // data = data.slice(32)
                 data.map(i => {
                     tempOil.push(i.sum)
                 })
             })
             await Emission.find({ country_name: country }).then(data => {
-                console.log(data)
                 data[0].data.map(i => {
                     tempEmissions.push(i['Fuel combustion in public electricity and heat production'])
                 })

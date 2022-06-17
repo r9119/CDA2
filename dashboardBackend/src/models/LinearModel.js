@@ -5,6 +5,7 @@ module.exports = mongoose => {
         {
           country_code: String,
           country_name: String,
+          r2: Number,
           data: Array
         },
         {

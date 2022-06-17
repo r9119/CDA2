@@ -52,8 +52,8 @@ export default {
     indexLm(country) {
         return Api().get('/index-lm', {
             params: {
-              country
-          }
+                country
+            }
         })
     },
     indexYearlyBrent() {

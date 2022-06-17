@@ -572,6 +572,23 @@ export default {
                     title: {
                         display: true,
                         text: `Lineare Modell zum einfluss der ölpreis auf die emissionen in ${this.$route.query.land}`
+                    },
+                    annotation: {
+                        annotations: {
+                            label1: {
+                                type: 'label',
+                                xValue: 2500,
+                                yValue: 10000,
+                                // xAdjust: 1000,
+                                // yAdjust: -10000,
+                                backgroundColor: 'rgba(245,245,245)',
+                                content: [],
+                                textAlign: 'start',
+                                font: {
+                                    size: 18
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -816,6 +833,7 @@ export default {
             pointRadius: 2,
             data: this.temp.scatterData
         })
+        this.linearModelOptions.plugins.annotation.annotations.label1.content.push("Die korrelation bei " + country + " im Jahr 2019 ist: " + round(this.temp.rValue, 5))
 
         this.temp = (await dataService.indexSimulation(country)).data
         this.simulationData.datasets.push({
