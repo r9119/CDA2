@@ -182,15 +182,15 @@
                                     <template #header>
                                         <div class="col-10 mx-auto">
                                             <div class="col-3" style="display: inline-block">
-                                                <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.decreaseOptions" optionLabel="label" placeholder="Technologie zum Senken" />
+                                                <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.increaseOptions" optionLabel="label" placeholder="Technologie zum Erhöhen" @change="updateMinMax" />
                                             </div>
                                             <div class="col-6" style="display: inline-block">
-                                                <b>{{simulation.increasingSector.label}}:</b> {{simulation[simulation.increasingSector.value]}}
-                                                <Slider style="margin: 10px;" v-model="simulation[simulation.increasingSector.value]" @change="updateDecreaseValue" />
-                                                <b>{{simulation.decreasingSector.label}}:</b> {{simulation[simulation.decreasingSector.value]}}
+                                                <b>{{simulation.increasingSector.label}}:</b> {{simulation.values[simulation.increasingSector.value]}}
+                                                <Slider :step="0.01" style="margin: 10px;" v-model="simulation.values[simulation.decreasingSector.value]" :min="simulation.min" :max="simulation.max" @change="updateIncreaseValue" />
+                                                <b>{{simulation.decreasingSector.label}}:</b> {{simulation.values[simulation.decreasingSector.value]}}
                                             </div>
                                             <div class="col-3" style="display: inline-block">
-                                                <Dropdown style="width: 100%" v-model="simulation.increasingSector" :options="simulation.increaseOptions" optionLabel="label" placeholder="Technologie zum Erhöhen" />
+                                                <Dropdown style="width: 100%" v-model="simulation.decreasingSector" :options="simulation.decreaseOptions" optionLabel="label" placeholder="Technologie zum Senken" @change="updateMinMax" />
                                             </div>
                                         </div>
 
@@ -220,6 +220,7 @@ import { Line, Bar, Scatter } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, Decimation, TimeScale } from 'chart.js'
 import chartZoom from 'chartjs-plugin-zoom'
 import annotationPlugin from 'chartjs-plugin-annotation';
+import {sum} from 'mathjs'
 
 ChartJS.register(Title, Tooltip, Legend, LineElement, BarElement, LinearScale, PointElement, CategoryScale, chartZoom, annotationPlugin, Decimation, TimeScale)
 
@@ -618,37 +619,37 @@ export default {
             simulation: {
                 increaseOptions: [{
                     label: "Wind on shore",
-                    value: "windOnshoreValue"
+                    value: 2
                 },{
                     label: "Wind off shore",
-                    value: "windOffshoreValue"
+                    value: 3
                 },{
                     label: "Solar photovoltaik",
-                    value: "solarPhotoValue"
+                    value: 5
                 },{
                     label: "Solar thermisch",
-                    value: "solarThermalValue"
+                    value: 4
                 }],
                 decreaseOptions: [{
                     label: "Kohle",
-                    value: "coalValue"
+                    value: 0
                 },{
                     label: "Erdgas",
-                    value: "gasValue"
+                    value: 1
                 }],
-                coalValue: 0,
-                gasvalue: 0,
-                windOnshoreValue: 0,
-                windOffshoreValue: 0,
-                solarPhotoValue: 0,
-                solarThermalValue: 0,
-                originalIncreaseValue: 13,
+                values: [],
+                valueMatrix: [],
+                originalIncreaseValue: 0,
                 originalDecreaseValue: 0,
                 min: 0,
-                max: 100,
+                max: 1,
                 increasingSector: {label: "", value: ""},
                 decreasingSector: {label: "", value: ""}
-            }
+            },
+            unexplainedConsumer: null,
+            unexplainedIndustry: null,
+            Lcoe: null,
+            LcoeMatrix: []
         }
     },
     async beforeMount() {
@@ -784,8 +785,8 @@ export default {
             pointRadius: 2,
             data: this.temp.values
         })
+
         this.temp = (await dataService.indexSimulation(country)).data
-        console.log(this.temp[0])
         this.simulationData.datasets.push({
             label: "2019 Preise",
             data: [this.temp[0].consumer_price, this.temp[0].industry_price],
@@ -796,20 +797,50 @@ export default {
         })
         this.simulationData.datasets.push({
             label: "Simulations Preise",
-            data: [0.25, 0.18],
+            data: [this.temp[0].consumer_price, this.temp[0].industry_price],
             borderColor: colors[12],
             backgroundColor: "rgba(243, 135, 99, 0.3)",
             borderWidth: 2,
             borderSkipped: false
         })
 
+        this.simulation.values = Object.values(this.temp[0].percentages[0])
+
+        this.unexplainedConsumer = this.temp[0].unexplained_consumer
+        this.unexplainedIndustry = this.temp[0].unexplained_industry
+
+        this.Lcoe = Object.values((await dataService.indexLcoe()).data).slice(1)
+
         this.temp = null
         
         this.loading = false
     },
     methods: {
-        updateDecreaseValue() {
-            this.simulation[this.simulation.decreasingSector.value] = this.simulation[this.simulation.increasingSector.value] - this.simulation.originalIncreaseValue
+        async updateMinMax() {
+            try {
+                this.temp = (await dataService.indexSimulation(this.$route.query.land)).data
+                this.simulation.values = Object.values(this.temp[0].percentages[0])
+                this.simulation.max = this.simulation.values[this.simulation.increasingSector.value] + this.simulation.values[this.simulation.decreasingSector.value]
+                this.simulation.originalDecreaseValue = this.simulation.values[this.simulation.decreasingSector.value]
+                this.temp = null
+            } catch (err) {
+                console.log(err)
+            }
+        },
+        updateIncreaseValue() {
+            this.simulation.values[this.simulation.increasingSector.value] = this.simulation.originalDecreaseValue - this.simulation.values[this.simulation.decreasingSector.value]
+            let result = []
+            let temp = []
+
+            this.simulation.values.map((a, index) => {
+                temp.push(a * this.Lcoe[index])
+            })
+
+            temp = sum(temp)
+
+            result.push(this.unexplainedConsumer + temp)
+            result.push(this.unexplainedIndustry + temp)
+            this.simulationData.datasets[1].data = result
         }
     }
 }

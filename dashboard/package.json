@@ -14,6 +14,7 @@
     "chartjs-plugin-downsample": "^1.1.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "leaflet": "^1.8.0",
+    "mathjs": "^10.6.1",
     "pinia": "^2.0.13",
     "primeflex": "^3.2.0",
     "primeicons": "^5.0.0",
