@@ -655,7 +655,7 @@ export default {
                     },
                     zoom: {
                         limits: {
-                            y: {min: 0, max: 15000}
+                            y: {min: 0, max: ((["Germany"].includes(this.$route.query.land)) ? 20000 : (["Spain", "Turkey", "Sweden", "Netherlands"].includes(this.$route.query.land)) ? 12500 : 5000)}
                         },
                         pan: {
                             enabled: true
@@ -701,7 +701,7 @@ export default {
                     },
                     zoom: {
                         limits: {
-                            y: {min: 0, max: 200000}
+                            y: {min: 0, max: ((["Germany", "Poland"].includes(this.$route.query.land)) ? 400000 : (["Spain", "Turkey"].includes(this.$route.query.land)) ? 160000 : 60000)}
                         },
                         pan: {
                             enabled: true

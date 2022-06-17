@@ -1,5 +1,5 @@
 # CDA2: Einfluss Ölpreis auf Treibhausgasausstoss
-**A dashboard to cover the influence the oil price has on greenhouse gas emissions.** (currently confined to specific countries in the EU, and currently only avaliable in german)
+**A dashboard to cover the influence the oil price has on greenhouse gas emissions.** (currently confined to a handful countries in the EU, and currently only avaliable in german)
 
 ### Project Requirements:
 
@@ -33,11 +33,13 @@ npm run build
 ```
 
 #### Navigating and using the dashboard:
+Die Startseite des Dashboards (localhost:3000/) besteht aus einer  Weltkarte der erfassten Länder. Diese dient als Navigationsportal. Wenn Sie auf eines der Länder auf der Karte klicken, kommen Sie auf die Detailseite des jeweiligen Landes.
+
+Unterhalb der Kartennavigation befindet sich ein kurzer Überblick über den Umfang des Dashboards. Dazu gehört ein Diagramm, in dem historische Daten zum Brent Ölpreis (Ii Dollar) und zu den gesamten Treibhausgasemissionen der EU (tCO2 eq.) verglichen werden.
+
 The landing page of the dashboard (localhost:3000/) consitsts of a map of the covered countries. This serves as the navigation portal, clicking on one of the countries on the map takes you to the details page of that country.
 
-Underneath the map navigation, there is a short oversight of the scope of the dashboard. Which includes a graph comparing historical data of both the Brent oil price ($) and overall EU GHG emissions (tCO2 eq.).
-
-Data sources are mentioned under each graph.
+Underneath the map navigation, there is a short oversight of the scope of the dashboard. Which includes a graph comparing historical data of both the Brent oil price (in dollars) and overall EU GHG emissions (tCO2 eq.).
 
 ## Backend:
 #### Backend Setup
