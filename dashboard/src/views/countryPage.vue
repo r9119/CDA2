@@ -4,6 +4,8 @@
             <Navbar />
         </div>
 
+        <Toast position="top-center" />
+
         <div v-if="loading">
             <div style="position: absolute; top: 50%; left: 50%;">
                 <i class="pi pi-spin pi-spinner" style="font-size: 5rem; color: #551a8b;"></i>
@@ -886,156 +888,201 @@ export default {
 
         let colors = ["#4B1D91CC", "#661796CC", "#7D129ACC", "#910F9CCC", "#A4129DCC", "#B51A9CCC", "#C42599CC", "#D23293CC", "#DF408CCC", "#EB4E82CC", "#EF6276CC", "#F1756BCC", "#F38763CC", "#F3975ECC", "#F2A75FCC", "#F0B768CC", "#ECC579CC", "#E7D39ACC"]
 
-        this.oilPrice.datasets.push({
-            label: "Brentölpreis",
-            fill: false,
-            borderWidth: 2,
-            borderColor: colors[0],
-            tension: 0.5,
-            pointRadius: 0,
-            data: (await dataService.indexOilPrice()).data
-        })
-
-        this.temp = (await dataService.indexYearlyBrent()).data
-
-        this.oilPriceReduced.labels = this.temp.labels
-        this.oilPriceReduced.datasets.push({
-            label: "Brentölpreis",
-            fill: false,
-            borderWidth: 2,
-            borderColor: colors[0],
-            tension: 0.5,
-            pointRadius: 0,
-            data: this.temp.avgs,
-        })
-
-        this.temp = (await dataService.indexEnergyGen(country)).data
-        this.shareOfElec.labels = this.temp[0].date
-        Object.keys(this.temp[0].percentage).forEach((element, index) => {
-            this.shareOfElec.datasets.push({
-                label: element,
+        try {
+            this.oilPrice.datasets.push({
+                label: "Brentölpreis",
                 fill: false,
                 borderWidth: 2,
-                borderColor: colors[index],
+                borderColor: colors[0],
                 tension: 0.5,
                 pointRadius: 0,
-                data: this.temp[0].percentage[element]
+                data: (await dataService.indexOilPrice()).data
             })
-        });
-        
-        this.energyGeneration.labels = this.temp[0].date
-        Object.keys(this.temp[0].percentage).forEach((element, index) => {
-            this.energyGeneration.datasets.push({
-                label: element,
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching brent oil price data', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        try {
+            this.temp = (await dataService.indexYearlyBrent()).data
+
+            this.oilPriceReduced.labels = this.temp.labels
+            this.oilPriceReduced.datasets.push({
+                label: "Brentölpreis",
                 fill: false,
                 borderWidth: 2,
-                borderColor: colors[index],
+                borderColor: colors[0],
                 tension: 0.5,
                 pointRadius: 0,
-                data: this.temp[0].absolute[element]
+                data: this.temp.avgs,
             })
-        });
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching yearly brent oil price data', detail: 'Check browser console for more info', life: 3000})
+        }
 
-        this.temp = (await dataService.indexConsumerElecPrice(country)).data
-        this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
-        this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
-        this.temp.slice(0,5).forEach((element, index) => {
-            this.elecPricesConsumerPre2007.datasets.push({
-                label: element.data.name,
+        try {
+            this.temp = (await dataService.indexEnergyGen(country)).data
+            this.shareOfElec.labels = this.temp[0].date
+            Object.keys(this.temp[0].percentage).forEach((element, index) => {
+                this.shareOfElec.datasets.push({
+                    label: element,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 0,
+                    data: this.temp[0].percentage[element]
+                })
+            });
+
+            this.energyGeneration.labels = this.temp[0].date
+            Object.keys(this.temp[0].percentage).forEach((element, index) => {
+                this.energyGeneration.datasets.push({
+                    label: element,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 0,
+                    data: this.temp[0].absolute[element]
+                })
+            });
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching energy generation data', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        try {
+            this.temp = (await dataService.indexConsumerElecPrice(country)).data
+            this.elecPricesConsumerPre2007.labels = this.temp[0].data.labels
+            this.elecPricesConsumerPost2007.labels = this.temp[6].data.labels
+            this.temp.slice(0,5).forEach((element, index) => {
+                this.elecPricesConsumerPre2007.datasets.push({
+                    label: element.data.name,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 2,
+                    data: element.data.values
+                })
+            });
+            this.temp.slice(-5).forEach((element, index) => {
+                this.elecPricesConsumerPost2007.datasets.push({
+                    label: element.data.name,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 2,
+                    data: element.data.values
+                })
+            });
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching consumer prices', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        try {
+            this.temp = (await dataService.indexIndustryElecPrice(country)).data
+            this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
+            this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
+            this.temp.slice(0,9).forEach((element, index) => {
+                this.elecPricesIndustryPre2007.datasets.push({
+                    label: element.data.name,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 2,
+                    data: element.data.values
+                })
+            });
+            this.temp.slice(-7).forEach((element, index) => {
+                this.elecPricesIndustryPost2007.datasets.push({
+                    label: element.data.name,
+                    fill: false,
+                    borderWidth: 2,
+                    borderColor: colors[index],
+                    tension: 0.5,
+                    pointRadius: 2,
+                    data: element.data.values
+                })
+            });
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching industry prices', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        try {
+            this.temp = (await dataService.indexEmissions(country)).data
+            this.emissions.labels = this.temp[0].date
+            this.emissions.datasets.push({
+                label: "Emissionen",
                 fill: false,
                 borderWidth: 2,
-                borderColor: colors[index],
+                borderColor: colors[0],
                 tension: 0.5,
                 pointRadius: 2,
-                data: element.data.values
+                data: this.temp[0].emissions
             })
-        });
-        this.temp.slice(-5).forEach((element, index) => {
-            this.elecPricesConsumerPost2007.datasets.push({
-                label: element.data.name,
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching emissions data', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        try {
+            this.temp = (await dataService.indexLm(country)).data
+            this.linearModel.datasets.push({
+                label: "Korrelation",
                 fill: false,
                 borderWidth: 2,
-                borderColor: colors[index],
+                borderColor: colors[0],
                 tension: 0.5,
                 pointRadius: 2,
-                data: element.data.values
+                data: this.temp.scatterData
             })
-        });
+            this.linearModelOptions.plugins.annotation.annotations.label1.content.push("R² für " + country + " beträgt: " + round(this.temp.rValue, 5))
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching linear model data', detail: 'Check browser console for more info', life: 3000})
+        }
 
-        this.temp = (await dataService.indexIndustryElecPrice(country)).data
-        this.elecPricesIndustryPre2007.labels = this.temp[0].data.labels
-        this.elecPricesIndustryPost2007.labels = this.temp[10].data.labels
-        this.temp.slice(0,9).forEach((element, index) => {
-            this.elecPricesIndustryPre2007.datasets.push({
-                label: element.data.name,
-                fill: false,
+        try {
+            this.temp = (await dataService.indexSimulation(country)).data
+            this.simulationData.datasets.push({
+                label: "2019 Preise",
+                data: [this.temp[0].consumer_price, this.temp[0].industry_price],
+                borderColor: colors[0],
+                backgroundColor: 'rgba(75, 29, 145, 0.3)',
                 borderWidth: 2,
-                borderColor: colors[index],
-                tension: 0.5,
-                pointRadius: 2,
-                data: element.data.values
+                borderSkipped: false
             })
-        });
-        this.temp.slice(-7).forEach((element, index) => {
-            this.elecPricesIndustryPost2007.datasets.push({
-                label: element.data.name,
-                fill: false,
+            this.simulationData.datasets.push({
+                label: "Szenariorechnung",
+                data: [this.temp[0].consumer_price, this.temp[0].industry_price],
+                borderColor: colors[12],
+                backgroundColor: "rgba(243, 135, 99, 0.3)",
                 borderWidth: 2,
-                borderColor: colors[index],
-                tension: 0.5,
-                pointRadius: 2,
-                data: element.data.values
+                borderSkipped: false
             })
-        });
 
-        this.temp = (await dataService.indexEmissions(country)).data
-        this.emissions.labels = this.temp[0].date
-        this.emissions.datasets.push({
-            label: "Emissionen",
-            fill: false,
-            borderWidth: 2,
-            borderColor: colors[0],
-            tension: 0.5,
-            pointRadius: 2,
-            data: this.temp[0].emissions
-        })
+            this.simulation.values = Object.values(this.temp[0].percentages[0])
 
-        this.temp = (await dataService.indexLm(country)).data
-        this.linearModel.datasets.push({
-            label: "Korrelation",
-            fill: false,
-            borderWidth: 2,
-            borderColor: colors[0],
-            tension: 0.5,
-            pointRadius: 2,
-            data: this.temp.scatterData
-        })
-        this.linearModelOptions.plugins.annotation.annotations.label1.content.push("R² für " + country + " beträgt: " + round(this.temp.rValue, 5))
+            this.unexplainedConsumer = this.temp[0].unexplained_consumer
+            this.unexplainedIndustry = this.temp[0].unexplained_industry
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching simulation data', detail: 'Check browser console for more info', life: 3000})
+        }
 
-        this.temp = (await dataService.indexSimulation(country)).data
-        this.simulationData.datasets.push({
-            label: "2019 Preise",
-            data: [this.temp[0].consumer_price, this.temp[0].industry_price],
-            borderColor: colors[0],
-            backgroundColor: 'rgba(75, 29, 145, 0.3)',
-            borderWidth: 2,
-            borderSkipped: false
-        })
-        this.simulationData.datasets.push({
-            label: "Szenariorechnung",
-            data: [this.temp[0].consumer_price, this.temp[0].industry_price],
-            borderColor: colors[12],
-            backgroundColor: "rgba(243, 135, 99, 0.3)",
-            borderWidth: 2,
-            borderSkipped: false
-        })
-
-        this.simulation.values = Object.values(this.temp[0].percentages[0])
-
-        this.unexplainedConsumer = this.temp[0].unexplained_consumer
-        this.unexplainedIndustry = this.temp[0].unexplained_industry
-
-        this.Lcoe = Object.values((await dataService.indexLcoe()).data).slice(1)
+        try {
+            this.Lcoe = Object.values((await dataService.indexLcoe()).data).slice(1)
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching LCOE data', detail: 'Check browser console for more info', life: 3000})
+        }
 
         this.temp = null
         
@@ -1051,6 +1098,7 @@ export default {
                 this.simulation.originalIncreaseValue = this.simulation.values[this.simulation.increasingSector.value]
                 this.temp = null
             } catch (err) {
+                this.$toast.add({severity: 'error', summary: 'Error updating chart maxes', detail: 'Check browser console for more info', life: 3000})
                 console.log(err)
             }
         },

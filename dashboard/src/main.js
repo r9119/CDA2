@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import PrimeVue from 'primevue/config'
+import ToastService from 'primevue/toastservice';
 
 import 'primevue/resources/themes/saga-blue/theme.css'
 import 'primevue/resources/primevue.min.css'
@@ -21,12 +22,14 @@ import Card from 'primevue/card'
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import Slider from 'primevue/slider';
+import Toast from 'primevue/toast';
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
 app.use(PrimeVue, {ripple: true})
+app.use(ToastService);
 
 app.component('Button', Button)
 app.component('InputText', InputText)
@@ -39,6 +42,7 @@ app.component('Divider', Divider)
 app.component('TabView', TabView)
 app.component('TabPanel', TabPanel)
 app.component('Slider', Slider)
+app.component('Toast', Toast)
 
 
 app.mount('#app')

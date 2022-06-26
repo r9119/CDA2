@@ -4,7 +4,7 @@ const Emission = db.Emission
 const ConsumerPrices = db.ConsumerPrices
 const IndustryPrices = db.IndustryPrices
 const EnergyGen = db.EnergyGeneration
-const InstalledCapacity = db.InstalledCapacity
+// const InstalledCapacity = db.InstalledCapacity
 const LCOE = db.LCOE
 const LM = db.LinearModel
 const YearlyBrent = db.YearlyBrentOilPrice
@@ -13,7 +13,8 @@ const Simulation = db.Simulation
 
 // let dates = array.map(a => a.date) 
 
-// Will add 'simple' data indexes once we have them in db
+// Commented out is old code that is no longer in use as we changed our data to be consistent across all countries (No more spain specific querying etc)
+
 module.exports = {
     async indexOilPrice (req, res) {
         try {

@@ -4,6 +4,8 @@
             <Navbar />
         </div>
 
+        <Toast position="top-center"/>
+
         <div v-if="loading">
             <div style="position: absolute; top: 50%; left: 50%;">
                 <i class="pi pi-spin pi-spinner" style="font-size: 5rem; color: #551a8b;"></i>
@@ -185,32 +187,44 @@ export default {
         circleMarker(latLng, { radius: 8 });
         this.mapIsReady = true;
 
-        this.temp = (await dataService.indexYearlyBrent()).data
+        try {
+            this.temp = (await dataService.indexYearlyBrent()).data
 
-        this.oilPrice.labels = this.temp.labels
-        this.oilPrice.datasets.push({
-            label: "Brentölpreis",
-            fill: false,
-            borderWidth: 2,
-            borderColor: "#4B1D91CC",
-            tension: 0.4,
-            pointRadius: 0,
-            data: this.temp.avgs,
-            yAxisID: 'y'
-        })
+            this.oilPrice.labels = this.temp.labels
+            this.oilPrice.datasets.push({
+                label: "Brentölpreis",
+                fill: false,
+                borderWidth: 2,
+                borderColor: "#4B1D91CC",
+                tension: 0.4,
+                pointRadius: 0,
+                data: this.temp.avgs,
+                yAxisID: 'y'
+            })
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching yearly brent oil price data', detail: 'Check browser console for more info', life: 3000})
+        }
 
-        this.temp = (await dataService.indexEuEmissions()).data
+        try {
+            this.temp = (await dataService.indexEuEmissions()).data
 
-        this.oilPrice.datasets.push({
-            label: "Emissionen der gesamten EU",
-            fill: false,
-            borderWidth: 2,
-            borderColor: "#EB4E82CC",
-            tension: 0.4,
-            pointRadius: 0,
-            data: this.temp.emissions,
-            yAxisID: 'y1'
-        })
+            this.oilPrice.datasets.push({
+                label: "Emissionen der gesamten EU",
+                fill: false,
+                borderWidth: 2,
+                borderColor: "#EB4E82CC",
+                tension: 0.4,
+                pointRadius: 0,
+                data: this.temp.emissions,
+                yAxisID: 'y1'
+            })
+        } catch (err) {
+            console.log(err)
+            this.$toast.add({severity: 'error', summary: 'Error fetching EU emissions data', detail: 'Check browser console for more info', life: 3000})
+        }
+
+        this.temp = null
 
         this.loading = false
     },
