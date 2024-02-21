@@ -8,7 +8,7 @@
     "test:unit": "vitest --environment jsdom"
   },
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^0.28.0",
     "chart.js": "^3.7.1",
     "chartjs-plugin-annotation": "^1.4.0",
     "chartjs-plugin-downsample": "^1.1.0",
